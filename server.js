@@ -16,6 +16,15 @@ const SPY_DRAWDOWN_ALARM_PERCENT = Number(process.env.SPY_DRAWDOWN_ALARM_PERCENT
 const ALERT_EMAIL_TO = process.env.ALERT_EMAIL_TO || "pohlk888@gmail.com";
 const ALERT_EMAIL_COOLDOWN_MS = Number(process.env.ALERT_EMAIL_COOLDOWN_MS || 6 * 60 * 60 * 1000);
 const ALARM_SYMBOLS = ["SPY", "SPX", "ES1!"];
+const DEFAULT_ALLOWED_ORIGINS = [
+  "https://pohlk888.github.io",
+  "http://127.0.0.1:4173",
+  "http://localhost:4173",
+];
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || DEFAULT_ALLOWED_ORIGINS.join(","))
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -104,10 +113,31 @@ let spyAlarmState = {
 
 function sendJson(res, status, payload) {
   res.writeHead(status, {
+    ...corsHeaders(res.req),
     "content-type": "application/json; charset=utf-8",
     "cache-control": "no-store",
   });
   res.end(JSON.stringify(payload));
+}
+
+function corsHeaders(req) {
+  const origin = req?.headers?.origin;
+  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin) ? origin : null;
+
+  return {
+    ...(allowedOrigin ? { "access-control-allow-origin": allowedOrigin } : {}),
+    "access-control-allow-methods": "GET, POST, OPTIONS",
+    "access-control-allow-headers": "content-type",
+    "vary": "Origin",
+  };
+}
+
+function handleCorsPreflight(req, res) {
+  res.writeHead(204, {
+    ...corsHeaders(req),
+    "cache-control": "no-store",
+  });
+  res.end();
 }
 
 async function fetchQuotes(symbols) {
@@ -508,6 +538,13 @@ async function serveStatic(req, res) {
 }
 
 const server = http.createServer((req, res) => {
+  res.req = req;
+
+  if (req.method === "OPTIONS" && req.url?.startsWith("/api/")) {
+    handleCorsPreflight(req, res);
+    return;
+  }
+
   if (req.url?.startsWith("/api/quotes")) {
     handleQuotes(req, res);
     return;

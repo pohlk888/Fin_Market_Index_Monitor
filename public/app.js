@@ -33,6 +33,7 @@ const emailStatus = document.querySelector("#emailStatus");
 const testAlertButton = document.querySelector("#testAlertButton");
 const testAlertStatus = document.querySelector("#testAlertStatus");
 const tabs = [...document.querySelectorAll(".tab")];
+const API_BASE_URL = String(window.MARKET_MONITOR_CONFIG?.apiBaseUrl || "").replace(/\/+$/, "");
 
 let quotes = [];
 let alerts = {};
@@ -41,6 +42,14 @@ let timer = null;
 
 function isGitHubPagesHost() {
   return window.location.hostname.endsWith(".github.io");
+}
+
+function hasRemoteApi() {
+  return API_BASE_URL.length > 0;
+}
+
+function apiUrl(path) {
+  return `${API_BASE_URL}${path}`;
 }
 
 function formatNumber(value, digits = 2) {
@@ -215,14 +224,14 @@ function renderDeliveryStatus(status) {
 }
 
 async function loadAlertStatus() {
-  if (isGitHubPagesHost()) {
-    emailStatus.textContent = "Email alerts require local server";
+  if (isGitHubPagesHost() && !hasRemoteApi()) {
+    emailStatus.textContent = "Email alerts require backend API";
     emailStatus.className = "delivery-pill missing";
     return;
   }
 
   try {
-    const response = await fetch("/api/alert-status");
+    const response = await fetch(apiUrl("/api/alert-status"));
     const status = await response.json();
     if (!response.ok) throw new Error(status.error || "Alert status failed");
     renderDeliveryStatus(status);
@@ -234,8 +243,8 @@ async function loadAlertStatus() {
 }
 
 async function sendTestAlert() {
-  if (isGitHubPagesHost()) {
-    testAlertStatus.textContent = "Test email requires local server";
+  if (isGitHubPagesHost() && !hasRemoteApi()) {
+    testAlertStatus.textContent = "Test email requires backend API";
     return;
   }
 
@@ -243,7 +252,7 @@ async function sendTestAlert() {
   testAlertStatus.textContent = "Sending test";
 
   try {
-    const response = await fetch("/api/test-alert", { method: "POST" });
+    const response = await fetch(apiUrl("/api/test-alert"), { method: "POST" });
     const result = await response.json();
     if (!response.ok) throw new Error(result.detail || result.error || "Test alert failed");
     testAlertStatus.textContent = result.email.status;
@@ -259,12 +268,12 @@ async function loadQuotes() {
   window.clearTimeout(timer);
   setStatus("loading", "Updating");
 
-  if (isGitHubPagesHost()) {
+  if (isGitHubPagesHost() && !hasRemoteApi()) {
     setStatus("error", "Static GitHub Pages preview");
     quoteBody.innerHTML = `
       <tr>
         <td colspan="13" class="empty">
-          GitHub Pages can show this interface, but live quotes and email alerts require the local Node server.
+          GitHub Pages can show this interface, but live quotes and email alerts require a backend API URL in config.js.
         </td>
       </tr>
     `;
@@ -273,7 +282,7 @@ async function loadQuotes() {
 
   try {
     const symbols = SYMBOLS.map((item) => item.symbol).join(",");
-    const response = await fetch(`/api/quotes?symbols=${encodeURIComponent(symbols)}`);
+    const response = await fetch(apiUrl(`/api/quotes?symbols=${encodeURIComponent(symbols)}`));
     const payload = await response.json();
 
     if (!response.ok) {
