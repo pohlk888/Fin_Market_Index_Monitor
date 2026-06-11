@@ -10,7 +10,7 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 loadEnvFile();
 
 const PORT = Number(process.env.PORT || 4173);
-const HOST = process.env.HOST || "127.0.0.1";
+const HOST = process.env.HOST || (process.env.PORT ? "0.0.0.0" : "127.0.0.1");
 const TRADINGVIEW_SCAN_URL = "https://scanner.tradingview.com";
 const SPY_DRAWDOWN_ALARM_PERCENT = Number(process.env.SPY_DRAWDOWN_ALARM_PERCENT || 3.5);
 const ALERT_EMAIL_TO = process.env.ALERT_EMAIL_TO || "pohlk888@gmail.com";
@@ -517,6 +517,16 @@ async function handleAlertStatus(req, res) {
   sendJson(res, 200, alertConfigStatus());
 }
 
+async function handleHealth(req, res) {
+  sendJson(res, 200, {
+    ok: true,
+    service: "fin-market-index-monitor",
+    emailConfigured: hasEmailConfig(),
+    allowedOrigins: ALLOWED_ORIGINS,
+    checkedAt: Date.now(),
+  });
+}
+
 async function serveStatic(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const decodedPath = decodeURIComponent(url.pathname);
@@ -557,6 +567,11 @@ const server = http.createServer((req, res) => {
 
   if (req.url?.startsWith("/api/alert-status")) {
     handleAlertStatus(req, res);
+    return;
+  }
+
+  if (req.url?.startsWith("/api/health")) {
+    handleHealth(req, res);
     return;
   }
 

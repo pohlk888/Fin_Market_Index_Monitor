@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: fin-market-index-monitor-api
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: 465
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: ALERT_EMAIL_TO
+        value: pohlk888@gmail.com,li_keong_poh@umc.com,hsiang_yu_hsieh@umc.com
+      - key: SPY_DRAWDOWN_ALARM_PERCENT
+        value: 3.5
+      - key: ALERT_EMAIL_COOLDOWN_MS
+        value: 21600000
+      - key: ALLOWED_ORIGINS
+        value: https://pohlk888.github.io,http://127.0.0.1:4173,http://localhost:4173
