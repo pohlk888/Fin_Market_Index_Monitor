@@ -3,7 +3,7 @@ import tls from "node:tls";
 import { existsSync, readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
@@ -140,7 +140,7 @@ function handleCorsPreflight(req, res) {
   res.end();
 }
 
-async function fetchQuotes(symbols) {
+export async function fetchQuotes(symbols = DEFAULT_SYMBOLS) {
   const key = [...symbols].sort().join(",");
   const now = Date.now();
 
@@ -578,6 +578,8 @@ const server = http.createServer((req, res) => {
   serveStatic(req, res);
 });
 
-server.listen(PORT, HOST, () => {
-  console.log(`Financial market monitor running at http://${HOST}:${PORT}`);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  server.listen(PORT, HOST, () => {
+    console.log(`Financial market monitor running at http://${HOST}:${PORT}`);
+  });
+}

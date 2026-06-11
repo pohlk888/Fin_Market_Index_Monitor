@@ -1,0 +1,36 @@
+name: Refresh market data
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    env:
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASS: ${{ secrets.SMTP_PASS }}
+      SMTP_FROM: ${{ secrets.SMTP_FROM }}
+      ALERT_EMAIL_TO: ${{ vars.ALERT_EMAIL_TO }}
+      SPY_DRAWDOWN_ALARM_PERCENT: ${{ vars.SPY_DRAWDOWN_ALARM_PERCENT }}
+      ALERT_EMAIL_COOLDOWN_MS: ${{ vars.ALERT_EMAIL_COOLDOWN_MS }}
+      ALLOWED_ORIGINS: https://pohlk888.github.io
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: node tools/refresh_market_data.js
+      - name: Commit refreshed market data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/quotes.json
+          git diff --cached --quiet || git commit -m "Refresh market data"
+          git push

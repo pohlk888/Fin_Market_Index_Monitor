@@ -52,6 +52,10 @@ function apiUrl(path) {
   return `${API_BASE_URL}${path}`;
 }
 
+function usesStaticMarketData() {
+  return isGitHubPagesHost() && !hasRemoteApi();
+}
+
 function formatNumber(value, digits = 2) {
   if (value == null || Number.isNaN(Number(value))) return "--";
   return new Intl.NumberFormat("en-US", {
@@ -224,9 +228,9 @@ function renderDeliveryStatus(status) {
 }
 
 async function loadAlertStatus() {
-  if (isGitHubPagesHost() && !hasRemoteApi()) {
-    emailStatus.textContent = "Email alerts require backend API";
-    emailStatus.className = "delivery-pill missing";
+  if (usesStaticMarketData()) {
+    emailStatus.textContent = "Email alerts handled by GitHub Actions";
+    emailStatus.className = "delivery-pill ready";
     return;
   }
 
@@ -243,8 +247,8 @@ async function loadAlertStatus() {
 }
 
 async function sendTestAlert() {
-  if (isGitHubPagesHost() && !hasRemoteApi()) {
-    testAlertStatus.textContent = "Test email requires backend API";
+  if (usesStaticMarketData()) {
+    testAlertStatus.textContent = "Test email runs from GitHub Actions";
     return;
   }
 
@@ -268,21 +272,11 @@ async function loadQuotes() {
   window.clearTimeout(timer);
   setStatus("loading", "Updating");
 
-  if (isGitHubPagesHost() && !hasRemoteApi()) {
-    setStatus("error", "Static GitHub Pages preview");
-    quoteBody.innerHTML = `
-      <tr>
-        <td colspan="13" class="empty">
-          GitHub Pages can show this interface, but live quotes and email alerts require a backend API URL in config.js.
-        </td>
-      </tr>
-    `;
-    return;
-  }
-
   try {
     const symbols = SYMBOLS.map((item) => item.symbol).join(",");
-    const response = await fetch(apiUrl(`/api/quotes?symbols=${encodeURIComponent(symbols)}`));
+    const response = usesStaticMarketData()
+      ? await fetch(`data/quotes.json?t=${Date.now()}`, { cache: "no-store" })
+      : await fetch(apiUrl(`/api/quotes?symbols=${encodeURIComponent(symbols)}`));
     const payload = await response.json();
 
     if (!response.ok) {
@@ -302,11 +296,11 @@ async function loadQuotes() {
       minute: "2-digit",
       second: "2-digit",
     }).format(new Date(payload.fetchedAt));
-    setStatus("live", `${payload.source} ${stamp}`);
+    setStatus("live", `${usesStaticMarketData() ? "GitHub Actions" : payload.source} ${stamp}`);
   } catch (error) {
     setStatus("error", error.message);
   } finally {
-    timer = window.setTimeout(loadQuotes, 15000);
+    timer = window.setTimeout(loadQuotes, usesStaticMarketData() ? 60000 : 15000);
   }
 }
 
