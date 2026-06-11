@@ -1,0 +1,9 @@
+{
+  "spyDrawdown": {
+    "active": false,
+    "lastNotificationAttemptAt": 0,
+    "lastEmailSentAt": 0,
+    "lastEmailStatus": "Not sent"
+  },
+  "updatedAt": 1781222228459
+}

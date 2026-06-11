@@ -111,6 +111,17 @@ let spyAlarmState = {
   lastEmailStatus: "Not sent",
 };
 
+export function setSpyAlarmState(nextState = {}) {
+  spyAlarmState = {
+    ...spyAlarmState,
+    ...nextState,
+  };
+}
+
+export function getSpyAlarmState() {
+  return { ...spyAlarmState };
+}
+
 function sendJson(res, status, payload) {
   res.writeHead(status, {
     ...corsHeaders(res.req),
