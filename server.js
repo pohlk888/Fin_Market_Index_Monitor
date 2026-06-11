@@ -489,7 +489,8 @@ async function handleAlertStatus(req, res) {
 
 async function serveStatic(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
-  const pathname = url.pathname === "/" ? "/index.html" : decodeURIComponent(url.pathname);
+  const decodedPath = decodeURIComponent(url.pathname);
+  const pathname = decodedPath === "/" || decodedPath.endsWith("/") ? `${decodedPath}index.html` : decodedPath;
   const normalized = normalize(pathname).replace(/^(\.\.[/\\])+/, "");
   const filePath = join(__dirname, "public", normalized);
 

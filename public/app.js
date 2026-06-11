@@ -39,6 +39,10 @@ let alerts = {};
 let activeFilter = "all";
 let timer = null;
 
+function isGitHubPagesHost() {
+  return window.location.hostname.endsWith(".github.io");
+}
+
 function formatNumber(value, digits = 2) {
   if (value == null || Number.isNaN(Number(value))) return "--";
   return new Intl.NumberFormat("en-US", {
@@ -211,6 +215,12 @@ function renderDeliveryStatus(status) {
 }
 
 async function loadAlertStatus() {
+  if (isGitHubPagesHost()) {
+    emailStatus.textContent = "Email alerts require local server";
+    emailStatus.className = "delivery-pill missing";
+    return;
+  }
+
   try {
     const response = await fetch("/api/alert-status");
     const status = await response.json();
@@ -224,6 +234,11 @@ async function loadAlertStatus() {
 }
 
 async function sendTestAlert() {
+  if (isGitHubPagesHost()) {
+    testAlertStatus.textContent = "Test email requires local server";
+    return;
+  }
+
   testAlertButton.disabled = true;
   testAlertStatus.textContent = "Sending test";
 
@@ -243,6 +258,18 @@ async function sendTestAlert() {
 async function loadQuotes() {
   window.clearTimeout(timer);
   setStatus("loading", "Updating");
+
+  if (isGitHubPagesHost()) {
+    setStatus("error", "Static GitHub Pages preview");
+    quoteBody.innerHTML = `
+      <tr>
+        <td colspan="13" class="empty">
+          GitHub Pages can show this interface, but live quotes and email alerts require the local Node server.
+        </td>
+      </tr>
+    `;
+    return;
+  }
 
   try {
     const symbols = SYMBOLS.map((item) => item.symbol).join(",");
