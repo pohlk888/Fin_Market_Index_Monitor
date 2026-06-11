@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Financial Market Index Monitor</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="topbar" aria-label="Market monitor controls">
+        <div>
+          <p class="eyebrow">Live market board</p>
+          <h1>Financial Market Indices</h1>
+        </div>
+        <div class="status-wrap">
+          <span id="connectionDot" class="dot loading" aria-hidden="true"></span>
+          <span id="statusText">Connecting</span>
+          <button id="refreshButton" type="button" title="Refresh now" aria-label="Refresh now">
+            <span aria-hidden="true">↻</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="summary-grid" aria-label="Market summary">
+        <article class="summary-tile">
+          <span>S&P 500 ETF</span>
+          <strong id="spyValue">--</strong>
+          <em id="spyMove">--</em>
+        </article>
+        <article class="summary-tile">
+          <span>Nasdaq ETF</span>
+          <strong id="qqqValue">--</strong>
+          <em id="qqqMove">--</em>
+        </article>
+        <article class="summary-tile">
+          <span>Straits Times</span>
+          <strong id="stiValue">--</strong>
+          <em id="stiMove">--</em>
+        </article>
+        <article class="summary-tile">
+          <span>S&P Futures</span>
+          <strong id="esValue">--</strong>
+          <em id="esMove">--</em>
+        </article>
+      </section>
+
+      <section id="alarmPanel" class="alarm-panel" hidden aria-live="polite">
+        <strong>ALARM</strong>
+        <span id="alarmText">SPY drawdown threshold reached</span>
+        <em id="alarmEmailStatus">Email pending</em>
+      </section>
+
+      <section class="alert-control" aria-label="Alert delivery status">
+        <span id="emailStatus" class="delivery-pill">Email checking</span>
+        <button id="testAlertButton" type="button">Test Alert</button>
+        <span id="testAlertStatus" class="test-alert-status">Ready</span>
+      </section>
+
+      <section class="toolbar" aria-label="Table tools">
+        <div class="tabs" role="tablist" aria-label="Market filters">
+          <button class="tab active" type="button" data-filter="all">All</button>
+          <button class="tab" type="button" data-filter="etf">ETFs</button>
+          <button class="tab" type="button" data-filter="index">Indices</button>
+          <button class="tab" type="button" data-filter="future">Futures</button>
+        </div>
+        <label class="search">
+          <span>Search</span>
+          <input id="searchInput" type="search" placeholder="Symbol or market" autocomplete="off" />
+        </label>
+      </section>
+
+      <section class="table-wrap" aria-label="Real time quotes">
+        <table>
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Name</th>
+              <th>Market</th>
+              <th class="num">Last</th>
+              <th class="num">Change</th>
+              <th class="num">Change %</th>
+              <th class="num">All-Time High</th>
+              <th class="num">Drawdown %</th>
+              <th>Alarm Criteria</th>
+              <th class="num">Day range</th>
+              <th class="num">Volume</th>
+              <th>Updated</th>
+              <th>Feed</th>
+            </tr>
+          </thead>
+          <tbody id="quoteBody">
+            <tr>
+              <td colspan="13" class="empty">Loading market data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <script src="app.js" type="module"></script>
+  </body>
+</html>
