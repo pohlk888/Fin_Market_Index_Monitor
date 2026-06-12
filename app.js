@@ -61,6 +61,10 @@ function usesStaticMarketData() {
   return isGitHubPagesHost() && !hasRemoteApi();
 }
 
+function canUseStaticFallback() {
+  return isGitHubPagesHost();
+}
+
 function payloadTime(payload) {
   return Number(payload.generatedAt || payload.fetchedAt || 0);
 }
@@ -242,8 +246,8 @@ function renderDeliveryStatus(status) {
 }
 
 async function loadAlertStatus() {
-  if (usesStaticMarketData()) {
-    emailStatus.textContent = "Email alerts handled by GitHub Actions";
+  if (!hasRemoteApi()) {
+    emailStatus.textContent = "Email alerts need live backend";
     emailStatus.className = "delivery-pill ready";
     return;
   }
@@ -254,15 +258,17 @@ async function loadAlertStatus() {
     if (!response.ok) throw new Error(status.error || "Alert status failed");
     renderDeliveryStatus(status);
   } catch (error) {
-    emailStatus.textContent = "Email status unavailable";
+    emailStatus.textContent = canUseStaticFallback()
+      ? "Email backend offline; using GitHub data"
+      : "Email status unavailable";
     emailStatus.className = "delivery-pill missing";
     testAlertStatus.textContent = error.message;
   }
 }
 
 async function sendTestAlert() {
-  if (usesStaticMarketData()) {
-    testAlertStatus.textContent = "Test email runs from GitHub Actions";
+  if (!hasRemoteApi()) {
+    testAlertStatus.textContent = "Test email needs live backend";
     return;
   }
 
@@ -288,9 +294,7 @@ async function loadQuotes() {
 
   try {
     const symbols = SYMBOLS.map((item) => item.symbol).join(",");
-    const { payload, sourceLabel } = usesStaticMarketData()
-      ? await fetchStaticQuotes()
-      : await fetchApiQuotes(symbols);
+    const { payload, sourceLabel } = await fetchBestQuotes(symbols);
 
     if (!payload.quotes?.length) throw new Error("No quote rows returned");
 
@@ -313,7 +317,24 @@ async function loadQuotes() {
   } catch (error) {
     setStatus("error", error.message);
   } finally {
-    timer = window.setTimeout(loadQuotes, usesStaticMarketData() ? 60000 : 15000);
+    timer = window.setTimeout(loadQuotes, hasRemoteApi() ? 15000 : 60000);
+  }
+}
+
+async function fetchBestQuotes(symbols) {
+  if (!hasRemoteApi()) {
+    return fetchStaticQuotes();
+  }
+
+  try {
+    return await fetchApiQuotes(symbols);
+  } catch (error) {
+    if (!canUseStaticFallback()) throw error;
+    const fallback = await fetchStaticQuotes();
+    return {
+      payload: fallback.payload,
+      sourceLabel: `${fallback.sourceLabel} fallback`,
+    };
   }
 }
 
