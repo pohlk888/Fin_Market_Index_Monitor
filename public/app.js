@@ -20,6 +20,11 @@ const SYMBOLS = [
   { symbol: "HSI1!", group: "future" },
 ];
 const ALARM_SYMBOLS = ["SPY", "SPX", "ES1!"];
+const STATIC_DATA_MAX_AGE_MS = 10 * 60 * 1000;
+const STATIC_DATA_SOURCES = [
+  () => `data/quotes.json?t=${Date.now()}`,
+  () => `https://raw.githubusercontent.com/pohlk888/Fin_Market_Index_Monitor/main/data/quotes.json?t=${Date.now()}`,
+];
 
 const quoteBody = document.querySelector("#quoteBody");
 const searchInput = document.querySelector("#searchInput");
@@ -54,6 +59,15 @@ function apiUrl(path) {
 
 function usesStaticMarketData() {
   return isGitHubPagesHost() && !hasRemoteApi();
+}
+
+function payloadTime(payload) {
+  return Number(payload.generatedAt || payload.fetchedAt || 0);
+}
+
+function isStalePayload(payload) {
+  const timestamp = payloadTime(payload);
+  return !timestamp || Date.now() - timestamp > STATIC_DATA_MAX_AGE_MS;
 }
 
 function formatNumber(value, digits = 2) {
@@ -274,14 +288,11 @@ async function loadQuotes() {
 
   try {
     const symbols = SYMBOLS.map((item) => item.symbol).join(",");
-    const response = usesStaticMarketData()
-      ? await fetch(`data/quotes.json?t=${Date.now()}`, { cache: "no-store" })
-      : await fetch(apiUrl(`/api/quotes?symbols=${encodeURIComponent(symbols)}`));
-    const payload = await response.json();
+    const { payload, sourceLabel } = usesStaticMarketData()
+      ? await fetchStaticQuotes()
+      : await fetchApiQuotes(symbols);
 
-    if (!response.ok) {
-      throw new Error(payload.detail || payload.error || "Quote request failed");
-    }
+    if (!payload.quotes?.length) throw new Error("No quote rows returned");
 
     alerts = payload.alerts || {};
     quotes = payload.quotes.sort((a, b) => {
@@ -291,17 +302,53 @@ async function loadQuotes() {
     });
 
     render();
+    const timestamp = payloadTime(payload);
     const stamp = new Intl.DateTimeFormat(undefined, {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
-    }).format(new Date(payload.fetchedAt));
-    setStatus("live", `${usesStaticMarketData() ? "GitHub Actions" : payload.source} ${stamp}`);
+    }).format(new Date(timestamp));
+    const stale = isStalePayload(payload);
+    setStatus(stale ? "error" : "live", `${sourceLabel} ${stamp}${stale ? " stale" : ""}`);
   } catch (error) {
     setStatus("error", error.message);
   } finally {
     timer = window.setTimeout(loadQuotes, usesStaticMarketData() ? 60000 : 15000);
   }
+}
+
+async function fetchApiQuotes(symbols) {
+  const response = await fetch(apiUrl(`/api/quotes?symbols=${encodeURIComponent(symbols)}`), {
+    cache: "no-store",
+  });
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.detail || payload.error || "Quote request failed");
+  }
+  return { payload, sourceLabel: payload.source || "Live API" };
+}
+
+async function fetchStaticQuotes() {
+  let lastError = null;
+
+  for (let index = 0; index < STATIC_DATA_SOURCES.length; index += 1) {
+    try {
+      const response = await fetch(STATIC_DATA_SOURCES[index](), { cache: "no-store" });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.detail || payload.error || "Static quote request failed");
+      }
+
+      const sourceLabel = index === 0 ? "GitHub Pages" : "GitHub raw";
+      if (!isStalePayload(payload) || index === STATIC_DATA_SOURCES.length - 1) {
+        return { payload, sourceLabel };
+      }
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error("Static quote request failed");
 }
 
 tabs.forEach((tab) => {
