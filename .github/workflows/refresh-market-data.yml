@@ -2,11 +2,20 @@ name: Refresh market data
 
 on:
   workflow_dispatch:
+    inputs:
+      cycles:
+        description: "How many 5-minute refresh cycles to run"
+        required: false
+        default: "12"
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "3,8,13,18,23,28,33,38,43,48,53,58 * * * *"
 
 permissions:
   contents: write
+
+concurrency:
+  group: refresh-market-data
+  cancel-in-progress: false
 
 jobs:
   refresh:
@@ -23,14 +32,34 @@ jobs:
       ALLOWED_ORIGINS: https://pohlk888.github.io
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - run: node tools/refresh_market_data.js
-      - name: Commit refreshed market data
+      - name: Refresh and publish market data
+        env:
+          REFRESH_CYCLES: ${{ github.event.inputs.cycles || '1' }}
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/quotes.json data/alarm-state.json
-          git diff --cached --quiet || git commit -m "Refresh market data"
-          git push
+
+          cycles="$REFRESH_CYCLES"
+          case "$cycles" in
+            ''|*[!0-9]*) cycles=1 ;;
+          esac
+          if [ "$cycles" -lt 1 ]; then cycles=1; fi
+          if [ "$cycles" -gt 12 ]; then cycles=12; fi
+
+          for cycle in $(seq 1 "$cycles"); do
+            git pull --rebase origin main
+            node tools/refresh_market_data.js
+            git add data/quotes.json data/alarm-state.json
+            git diff --cached --quiet || git commit -m "Refresh market data"
+            git push
+
+            if [ "$cycle" -lt "$cycles" ]; then
+              sleep 300
+            fi
+          done
