@@ -46,7 +46,7 @@ jobs:
           node-version: "20"
       - name: Refresh and publish market data
         env:
-          REFRESH_CYCLES: ${{ github.event.inputs.cycles || '1' }}
+          REFRESH_CYCLES: ${{ github.event.inputs.cycles || (github.event_name == 'schedule' && '1' || '12') }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
