@@ -2,6 +2,7 @@ services:
   - type: web
     name: fin-market-index-monitor-api
     env: node
+    plan: free
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /api/health
