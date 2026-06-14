@@ -564,20 +564,52 @@ tbody tr.alarm-row:hover {
 @media (max-width: 640px) {
   .shell {
     width: min(100vw - 20px, 520px);
-    padding-bottom: 22px;
+    padding-top: 10px;
+    padding-bottom: 16px;
+  }
+
+  .topbar {
+    min-height: auto;
+    gap: 8px;
+  }
+
+  .eyebrow {
+    margin-bottom: 2px;
+    font-size: 0.68rem;
+  }
+
+  .status-wrap {
+    padding: 6px 0 0;
   }
 
   h1 {
-    font-size: 2rem;
+    font-size: 1.72rem;
   }
 
   .summary-grid {
     grid-template-columns: 1fr;
+    gap: 8px;
+    margin: 10px 0;
   }
 
   .summary-tile {
-    min-height: 106px;
-    padding: 15px 16px;
+    min-height: 78px;
+    padding: 11px 14px;
+  }
+
+  .summary-tile span,
+  .summary-tile em {
+    font-size: 0.8rem;
+  }
+
+  .summary-tile strong {
+    margin: 7px 0 5px;
+    font-size: 1.58rem;
+  }
+
+  .toolbar {
+    gap: 8px;
+    margin: 8px 0 10px;
   }
 
   .tabs {
@@ -594,6 +626,7 @@ tbody tr.alarm-row:hover {
 
   .alert-control {
     gap: 8px;
+    margin-bottom: 10px;
   }
 
   .table-wrap {
@@ -603,6 +636,34 @@ tbody tr.alarm-row:hover {
   .quote-cards {
     display: block;
   }
+
+  .quote-card {
+    padding: 12px;
+  }
+
+  .quote-card + .quote-card {
+    margin-top: 8px;
+  }
+
+  .quote-card-price {
+    margin: 11px 0 10px;
+  }
+
+  .quote-card-price span {
+    font-size: 1.7rem;
+  }
+
+  .quote-card-grid {
+    gap: 7px;
+  }
+
+  .quote-card-grid div {
+    padding: 8px;
+  }
+
+  .quote-card-criteria {
+    margin-top: 8px;
+  }
 }
 
 @media (max-width: 390px) {
@@ -611,7 +672,7 @@ tbody tr.alarm-row:hover {
   }
 
   h1 {
-    font-size: 1.72rem;
+    font-size: 1.58rem;
   }
 
   .status-wrap {
