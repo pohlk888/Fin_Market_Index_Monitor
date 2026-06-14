@@ -640,6 +640,9 @@ tbody tr.alarm-row:hover {
   display: block;
   border-radius: 8px;
   background: #ffffff;
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
 }
 
 .trend-frame {
@@ -655,6 +658,14 @@ tbody tr.alarm-row:hover {
 
 .trend-grid-vertical {
   stroke: #edf1f7;
+}
+
+.trend-selection {
+  fill: rgba(80, 126, 214, 0.18);
+  stroke: #507ed6;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  pointer-events: none;
 }
 
 .trend-area {

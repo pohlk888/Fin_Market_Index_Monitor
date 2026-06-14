@@ -86,6 +86,10 @@ let historyPayload = null;
 let historyPromise = null;
 let trendZoomLevel = 0;
 let trendExpanded = false;
+let trendRangeStart = null;
+let trendRangeEnd = null;
+let trendDrag = null;
+let trendChartMetrics = null;
 
 function isGitHubPagesHost() {
   return window.location.hostname.endsWith(".github.io");
@@ -242,6 +246,30 @@ function visibleCountFor(points) {
   return Math.max(60, Math.floor(points.length / 2 ** trendZoomLevel));
 }
 
+function visibleWindowFor(points) {
+  if (trendRangeStart !== null && trendRangeEnd !== null) {
+    const startIndex = Math.max(0, Math.min(trendRangeStart, points.length - 1));
+    const endIndex = Math.max(startIndex, Math.min(trendRangeEnd, points.length - 1));
+    return { startIndex, endIndex };
+  }
+
+  const visibleCount = visibleCountFor(points);
+  const startIndex = Math.max(0, points.length - visibleCount);
+  return { startIndex, endIndex: points.length - 1 };
+}
+
+function clearTrendRange() {
+  trendRangeStart = null;
+  trendRangeEnd = null;
+  trendDrag = null;
+}
+
+function setTrendRange(startIndex, endIndex, totalPoints) {
+  trendRangeStart = Math.max(0, Math.min(startIndex, totalPoints - 1));
+  trendRangeEnd = Math.max(trendRangeStart, Math.min(endIndex, totalPoints - 1));
+  trendZoomLevel = 0;
+}
+
 function movingAverageSeries(points, windowSize) {
   let sum = 0;
   return points.map((point, index) => {
@@ -355,6 +383,7 @@ async function fetchHistoryData() {
 }
 
 function renderTrendLoading(symbol) {
+  trendChartMetrics = null;
   const quote = quotes.find((item) => item.symbol === symbol);
   trendTitle.textContent = `${symbol} ${quote?.shortName || ""}`.trim();
   trendLast.textContent = quote ? `Last ${formatQuoteNumber(quote, quote.price)}` : "Last --";
@@ -370,6 +399,7 @@ function renderTrendLoading(symbol) {
 }
 
 function renderTrendError(symbol, message) {
+  trendChartMetrics = null;
   trendTitle.textContent = `${symbol} Trend Chart`;
   trendLast.textContent = "Last --";
   trendChange.textContent = "History unavailable";
@@ -394,9 +424,8 @@ function renderTrendChart(symbol) {
   trendLast.textContent = `Last ${formatQuoteNumber(quote, quote.price)}`;
   trendChange.textContent = `Move ${formatNumber(quote.change)} (${formatNumber(quote.changePercent)}%)`;
   trendChange.className = movementClass(quote.change);
-  const visibleCount = visibleCountFor(points);
-  const startIndex = Math.max(0, points.length - visibleCount);
-  const visiblePoints = points.slice(startIndex);
+  const { startIndex, endIndex } = visibleWindowFor(points);
+  const visiblePoints = points.slice(startIndex, endIndex + 1);
   trendPoints.textContent = `${visiblePoints.length} of ${points.length} days`;
 
   const chartWidth = 720;
@@ -406,6 +435,7 @@ function renderTrendChart(symbol) {
   const innerHeight = chartHeight - padding.top - padding.bottom;
 
   if (!points.length) {
+    trendChartMetrics = null;
     trendSvg.innerHTML = `
       <rect class="trend-frame" x="1" y="1" width="718" height="298" rx="8"></rect>
       ${svgText(320, 112, "Waiting for live quote history", "trend-empty-text", "middle")}
@@ -416,8 +446,8 @@ function renderTrendChart(symbol) {
 
   const allMa20 = movingAverageSeries(points, 20);
   const allMa200 = movingAverageSeries(points, 200);
-  const ma20 = allMa20.slice(startIndex);
-  const ma200 = allMa200.slice(startIndex);
+  const ma20 = allMa20.slice(startIndex, endIndex + 1);
+  const ma200 = allMa200.slice(startIndex, endIndex + 1);
   const pivots = pivotHighLowLevels(points, 200);
   const ohlcValues = visiblePoints
     .flatMap((point) => [pointHigh(point), pointLow(point), pointOpen(point), pointClose(point)])
@@ -435,6 +465,17 @@ function renderTrendChart(symbol) {
   const yMax = scale.max;
   const yRange = yMax - yMin || 1;
   const xStep = visiblePoints.length > 1 ? innerWidth / (visiblePoints.length - 1) : 0;
+
+  trendChartMetrics = {
+    chartWidth,
+    chartHeight,
+    padding,
+    innerWidth,
+    innerHeight,
+    startIndex,
+    endIndex,
+    totalPoints: points.length,
+  };
 
   const xForIndex = (index) => padding.left + (visiblePoints.length > 1 ? index * xStep : innerWidth / 2);
   const yForPrice = (price) => padding.top + (1 - (price - yMin) / yRange) * innerHeight;
@@ -513,6 +554,7 @@ function renderTrendChart(symbol) {
     <rect class="trend-frame" x="1" y="1" width="718" height="298" rx="8"></rect>
     ${yGrid}
     ${xGrid}
+    <rect id="trendSelection" class="trend-selection" x="0" y="${padding.top}" width="0" height="${innerHeight}" style="display: none;"></rect>
     ${pivotLines}
     ${candles}
     ${ma200Path ? `<polyline class="trend-ma-line ma200-line" points="${ma200Path}"></polyline>` : ""}
@@ -520,12 +562,13 @@ function renderTrendChart(symbol) {
     <text x="9" y="${chartHeight / 2}" class="trend-axis-title" text-anchor="middle" transform="rotate(-90 9 ${chartHeight / 2})">Market Value</text>
   `;
   const sourceSymbol = history?.sourceSymbol ? ` (${history.sourceSymbol})` : "";
-  trendNote.textContent = `Daily OHLC prices for the past 5 years from ${historyPayload?.source || "history data"}${sourceSymbol}. Pivot Point High Low uses the latest ${pivots?.length || 200} trading days.`;
+  trendNote.textContent = `Daily OHLC prices for the past 5 years from ${historyPayload?.source || "history data"}${sourceSymbol}. Drag across the chart to zoom into any month range.`;
 }
 
 async function openTrend(symbol) {
   openTrendSymbol = symbol;
   trendZoomLevel = 0;
+  clearTrendRange();
   trendPanel.hidden = false;
   renderTrendLoading(symbol);
   trendCloseButton.focus();
@@ -541,10 +584,120 @@ async function openTrend(symbol) {
 function closeTrend() {
   trendPanel.hidden = true;
   openTrendSymbol = null;
+  clearTrendRange();
+  trendChartMetrics = null;
 }
 
 function rerenderOpenTrend() {
   if (openTrendSymbol && historyPayload) renderTrendChart(openTrendSymbol);
+}
+
+function trendSvgPoint(event) {
+  const rect = trendSvg.getBoundingClientRect();
+  const viewBox = trendSvg.viewBox.baseVal;
+  return {
+    x: viewBox.x + ((event.clientX - rect.left) / rect.width) * viewBox.width,
+    y: viewBox.y + ((event.clientY - rect.top) / rect.height) * viewBox.height,
+  };
+}
+
+function clampTrendX(x) {
+  if (!trendChartMetrics) return x;
+  const { padding, chartWidth } = trendChartMetrics;
+  return Math.min(chartWidth - padding.right, Math.max(padding.left, x));
+}
+
+function trendIndexForX(x) {
+  if (!trendChartMetrics) return 0;
+  const { startIndex, endIndex, padding, innerWidth } = trendChartMetrics;
+  const span = Math.max(endIndex - startIndex, 1);
+  const ratio = (clampTrendX(x) - padding.left) / innerWidth;
+  return Math.round(startIndex + ratio * span);
+}
+
+function updateTrendSelection(startX, currentX) {
+  const selection = trendSvg.querySelector("#trendSelection");
+  if (!selection || !trendChartMetrics) return;
+
+  const x = Math.min(startX, currentX);
+  const width = Math.abs(currentX - startX);
+  selection.setAttribute("x", x.toFixed(2));
+  selection.setAttribute("width", width.toFixed(2));
+  selection.style.display = width > 2 ? "block" : "none";
+}
+
+function hideTrendSelection() {
+  const selection = trendSvg.querySelector("#trendSelection");
+  if (selection) selection.style.display = "none";
+}
+
+function startTrendDrag(event) {
+  if (trendPanel.hidden || !trendChartMetrics || event.button > 0) return;
+
+  const point = trendSvgPoint(event);
+  const x = clampTrendX(point.x);
+  trendDrag = { pointerId: event.pointerId, startX: x, currentX: x };
+  trendSvg.setPointerCapture?.(event.pointerId);
+  updateTrendSelection(x, x);
+  event.preventDefault();
+}
+
+function moveTrendDrag(event) {
+  if (!trendDrag || trendDrag.pointerId !== event.pointerId) return;
+
+  const point = trendSvgPoint(event);
+  const x = clampTrendX(point.x);
+  trendDrag.currentX = x;
+  updateTrendSelection(trendDrag.startX, x);
+}
+
+function finishTrendDrag(event) {
+  if (!trendDrag || trendDrag.pointerId !== event.pointerId || !trendChartMetrics) return;
+
+  const point = trendSvgPoint(event);
+  const endX = clampTrendX(point.x);
+  const startX = trendDrag.startX;
+  const dragWidth = Math.abs(endX - startX);
+  trendSvg.releasePointerCapture?.(event.pointerId);
+  hideTrendSelection();
+  trendDrag = null;
+
+  if (dragWidth < 10) return;
+
+  const nextStart = trendIndexForX(Math.min(startX, endX));
+  const nextEnd = trendIndexForX(Math.max(startX, endX));
+  if (nextEnd - nextStart < 5) return;
+
+  setTrendRange(nextStart, nextEnd, trendChartMetrics.totalPoints);
+  rerenderOpenTrend();
+}
+
+function cancelTrendDrag() {
+  trendDrag = null;
+  hideTrendSelection();
+}
+
+function adjustTrendRange(factor) {
+  if (!trendChartMetrics || trendRangeStart === null || trendRangeEnd === null) return false;
+
+  const { totalPoints } = trendChartMetrics;
+  const center = (trendRangeStart + trendRangeEnd) / 2;
+  const currentWidth = Math.max(trendRangeEnd - trendRangeStart + 1, 6);
+  const nextWidth = Math.max(20, Math.min(totalPoints, Math.round(currentWidth * factor)));
+  let startIndex = Math.round(center - nextWidth / 2);
+  let endIndex = startIndex + nextWidth - 1;
+
+  if (startIndex < 0) {
+    endIndex -= startIndex;
+    startIndex = 0;
+  }
+  if (endIndex >= totalPoints) {
+    startIndex -= endIndex - totalPoints + 1;
+    endIndex = totalPoints - 1;
+  }
+
+  setTrendRange(startIndex, endIndex, totalPoints);
+  return true;
 }
 
 function openTrendFromEvent(event) {
@@ -850,17 +1003,30 @@ trendExpandButton.addEventListener("click", () => {
   rerenderOpenTrend();
 });
 trendZoomInButton.addEventListener("click", () => {
+  if (adjustTrendRange(0.5)) {
+    rerenderOpenTrend();
+    return;
+  }
   trendZoomLevel = Math.min(trendZoomLevel + 1, 6);
   rerenderOpenTrend();
 });
 trendZoomOutButton.addEventListener("click", () => {
+  if (adjustTrendRange(2)) {
+    rerenderOpenTrend();
+    return;
+  }
   trendZoomLevel = Math.max(trendZoomLevel - 1, 0);
   rerenderOpenTrend();
 });
 trendResetButton.addEventListener("click", () => {
   trendZoomLevel = 0;
+  clearTrendRange();
   rerenderOpenTrend();
 });
+trendSvg.addEventListener("pointerdown", startTrendDrag);
+trendSvg.addEventListener("pointermove", moveTrendDrag);
+trendSvg.addEventListener("pointerup", finishTrendDrag);
+trendSvg.addEventListener("pointercancel", cancelTrendDrag);
 trendPanel.addEventListener("click", (event) => {
   if (event.target === trendPanel) closeTrend();
 });
