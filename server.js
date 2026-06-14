@@ -16,7 +16,8 @@ const SPY_DRAWDOWN_ALARM_PERCENT = Number(process.env.SPY_DRAWDOWN_ALARM_PERCENT
 const ALERT_EMAIL_TO = process.env.ALERT_EMAIL_TO || "pohlk888@gmail.com";
 const ALERT_EMAIL_COOLDOWN_MS = Number(process.env.ALERT_EMAIL_COOLDOWN_MS || 6 * 60 * 60 * 1000);
 const ALARM_SYMBOLS = ["SPY", "SPX", "ES1!"];
-const FOREX_ALARM_CRITERIA = {
+const PRICE_ALARM_CRITERIA = {
+  GOLD: { label: "< 4100", threshold: 4100, direction: "below" },
   SGDMYR: { label: "< 3.0500", threshold: 3.05, direction: "below" },
   SGDIDR: { label: "> 14200", threshold: 14200, direction: "above" },
   SGDCNY: { label: "< 5.1000", threshold: 5.1, direction: "below" },
@@ -225,10 +226,10 @@ async function evaluateSpyDrawdownAlarm(quotes, now) {
   const criteria = `${ALARM_SYMBOLS.join(", ")} drawdown <= -${SPY_DRAWDOWN_ALARM_PERCENT.toFixed(2)}%`;
 
   for (const quote of quotes) {
-    const forexAlarm = evaluateForexAlarm(quote);
-    if (forexAlarm) {
-      quote.alarmCriteria = forexAlarm.criteria;
-      quote.alarmTriggered = forexAlarm.triggered;
+    const priceAlarm = evaluatePriceAlarm(quote);
+    if (priceAlarm) {
+      quote.alarmCriteria = priceAlarm.criteria;
+      quote.alarmTriggered = priceAlarm.triggered;
     } else if (ALARM_SYMBOLS.includes(quote.symbol)) {
       quote.alarmCriteria = criteria;
       quote.alarmTriggered =
@@ -261,8 +262,8 @@ function shouldSendSpyAlarmNotifications(now) {
   return now - spyAlarmState.lastNotificationAttemptAt >= ALERT_EMAIL_COOLDOWN_MS;
 }
 
-function evaluateForexAlarm(quote) {
-  const criteria = FOREX_ALARM_CRITERIA[quote.symbol];
+function evaluatePriceAlarm(quote) {
+  const criteria = PRICE_ALARM_CRITERIA[quote.symbol];
   if (!criteria) return null;
   const price = quote.price;
   const triggered =

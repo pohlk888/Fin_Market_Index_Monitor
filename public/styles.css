@@ -751,9 +751,9 @@ tbody tr.alarm-row:hover {
   stroke-dasharray: 6 5;
 }
 
-.pivot-r1,
-.pivot-p,
-.pivot-s1 {
+.pivot-high,
+.pivot-mid,
+.pivot-low {
   fill: #5b46c8;
 }
 

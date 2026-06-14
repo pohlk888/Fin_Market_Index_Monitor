@@ -256,18 +256,19 @@ function movingAverageSeries(points, windowSize) {
   });
 }
 
-function pivotLevels(point) {
-  if (!point) return null;
-  const high = pointHigh(point);
-  const low = pointLow(point);
-  const close = pointClose(point);
-  if (![high, low, close].every((value) => typeof value === "number" && Number.isFinite(value))) return null;
+function pivotHighLowLevels(points, length = 50) {
+  const pivotPoints = points.slice(-length);
+  if (!pivotPoints.length) return null;
 
-  const pivot = (high + low + close) / 3;
+  const high = Math.max(...pivotPoints.map(pointHigh));
+  const low = Math.min(...pivotPoints.map(pointLow));
+  if (![high, low].every((value) => typeof value === "number" && Number.isFinite(value))) return null;
+
   return {
-    pivot,
-    r1: 2 * pivot - low,
-    s1: 2 * pivot - high,
+    high,
+    low,
+    mid: (high + low) / 2,
+    length: pivotPoints.length,
   };
 }
 
@@ -368,14 +369,14 @@ function renderTrendChart(symbol) {
   const allMa200 = movingAverageSeries(points, 200);
   const ma20 = allMa20.slice(startIndex);
   const ma200 = allMa200.slice(startIndex);
-  const pivots = pivotLevels(points.at(-1));
+  const pivots = pivotHighLowLevels(points, 50);
   const ohlcValues = visiblePoints
     .flatMap((point) => [pointHigh(point), pointLow(point), pointOpen(point), pointClose(point)])
     .filter((value) => typeof value === "number");
   const maValues = [...ma20, ...ma200]
     .map((point) => point.value)
     .filter((value) => typeof value === "number" && Number.isFinite(value));
-  const pivotValues = pivots ? [pivots.pivot, pivots.r1, pivots.s1] : [];
+  const pivotValues = pivots ? [pivots.high, pivots.mid, pivots.low] : [];
   const chartValues = [...ohlcValues, ...maValues, ...pivotValues];
   const minPrice = Math.min(...chartValues);
   const maxPrice = Math.max(...chartValues);
@@ -433,9 +434,9 @@ function renderTrendChart(symbol) {
     .join("");
   const pivotLines = pivots
     ? [
-        ["R1", pivots.r1, "pivot-r1"],
-        ["P", pivots.pivot, "pivot-p"],
-        ["S1", pivots.s1, "pivot-s1"],
+        ["High 50", pivots.high, "pivot-high"],
+        ["Mid 50", pivots.mid, "pivot-mid"],
+        ["Low 50", pivots.low, "pivot-low"],
       ]
         .map(([label, value, className]) => {
           const y = yForPrice(value);
@@ -452,7 +453,7 @@ function renderTrendChart(symbol) {
     <span><i class="candle-down-dot"></i>Down candle</span>
     <span><i class="ma20-dot"></i>20 days MA</span>
     <span><i class="ma200-dot"></i>200 days MA</span>
-    <span><i class="pivot-dot"></i>Pivot P/R1/S1</span>
+    <span><i class="pivot-dot"></i>Pivot Point High Low (50)</span>
   `;
   trendSvg.innerHTML = `
     <rect class="trend-frame" x="1" y="1" width="718" height="298" rx="8"></rect>
@@ -465,7 +466,7 @@ function renderTrendChart(symbol) {
     ${svgText(chartWidth - padding.right, chartHeight - 10, endTime, "trend-axis-text", "end")}
   `;
   const sourceSymbol = history?.sourceSymbol ? ` (${history.sourceSymbol})` : "";
-  trendNote.textContent = `Daily OHLC prices for the past 5 years from ${historyPayload?.source || "history data"}${sourceSymbol}. Pivot uses latest daily high, low, and close.`;
+  trendNote.textContent = `Daily OHLC prices for the past 5 years from ${historyPayload?.source || "history data"}${sourceSymbol}. Pivot Point High Low uses the latest ${pivots?.length || 50} trading days.`;
 }
 
 async function openTrend(symbol) {
