@@ -274,7 +274,7 @@ function renderTable() {
             </div>
           </dl>
           <div class="quote-card-criteria ${quote.alarmTriggered ? "criteria-hot" : ""}">
-            ${alarmCriteriaLabel(quote.alarmCriteria)}
+            Alarm Criteria ${alarmCriteriaLabel(quote.alarmCriteria)}
           </div>
         </article>
       `;
