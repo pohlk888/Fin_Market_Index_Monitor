@@ -8,6 +8,7 @@ on:
       - ".github/workflows/refresh-market-data.yml"
       - "server.js"
       - "tools/refresh_market_data.js"
+      - "tools/refresh_market_history.js"
   workflow_dispatch:
     inputs:
       cycles:
@@ -62,7 +63,8 @@ jobs:
           for cycle in $(seq 1 "$cycles"); do
             git pull --rebase origin main
             node tools/refresh_market_data.js
-            git add data/quotes.json data/alarm-state.json
+            node tools/refresh_market_history.js
+            git add data/quotes.json data/alarm-state.json data/history.json
             git diff --cached --quiet || git commit -m "Refresh market data"
             git push
 

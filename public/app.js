@@ -35,8 +35,10 @@ const STATIC_DATA_SOURCES = [
   () => `data/quotes.json?t=${Date.now()}`,
   () => `https://raw.githubusercontent.com/pohlk888/Fin_Market_Index_Monitor/main/data/quotes.json?t=${Date.now()}`,
 ];
-const TREND_STORAGE_KEY = "marketMonitorTrendHistory";
-const TREND_MAX_POINTS = 240;
+const HISTORY_DATA_SOURCES = [
+  () => `data/history.json?t=${Date.now()}`,
+  () => `https://raw.githubusercontent.com/pohlk888/Fin_Market_Index_Monitor/main/data/history.json?t=${Date.now()}`,
+];
 
 const quoteBody = document.querySelector("#quoteBody");
 const quoteCards = document.querySelector("#quoteCards");
@@ -67,7 +69,8 @@ let alerts = {};
 let activeFilter = "all";
 let timer = null;
 let openTrendSymbol = null;
-let trendHistory = loadTrendHistory();
+let historyPayload = null;
+let historyPromise = null;
 
 function isGitHubPagesHost() {
   return window.location.hostname.endsWith(".github.io");
@@ -186,53 +189,91 @@ function isSpyAlarmTriggered(quote) {
   );
 }
 
-function loadTrendHistory() {
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(TREND_STORAGE_KEY) || "{}");
-    if (!parsed || typeof parsed !== "object") return {};
-    return parsed;
-  } catch {
-    return {};
-  }
-}
-
-function saveTrendHistory() {
-  try {
-    window.localStorage.setItem(TREND_STORAGE_KEY, JSON.stringify(trendHistory));
-  } catch {
-    // Private browsing or full storage should not block live quote rendering.
-  }
-}
-
-function recordTrendHistory(nextQuotes, timestamp) {
-  const time = Number(timestamp) || Date.now();
-  let changed = false;
-
-  nextQuotes.forEach((quote) => {
-    if (typeof quote.price !== "number") return;
-
-    const points = Array.isArray(trendHistory[quote.symbol]) ? trendHistory[quote.symbol] : [];
-    const last = points.at(-1);
-    if (last && last.t === time && last.p === quote.price) return;
-
-    trendHistory[quote.symbol] = [...points, { t: time, p: quote.price }].slice(-TREND_MAX_POINTS);
-    changed = true;
-  });
-
-  if (changed) saveTrendHistory();
-}
-
 function trendPointsFor(symbol) {
-  return Array.isArray(trendHistory[symbol]) ? trendHistory[symbol] : [];
+  const points = historyPayload?.history?.[symbol]?.points;
+  return Array.isArray(points) ? points : [];
 }
 
 function svgText(x, y, text, className = "trend-axis-text", anchor = "start") {
   return `<text x="${x}" y="${y}" class="${className}" text-anchor="${anchor}">${text}</text>`;
 }
 
+function formatDate(value) {
+  if (!value) return "--";
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function pointClose(point) {
+  return typeof point?.c === "number" ? point.c : point?.p;
+}
+
+async function loadHistoryData() {
+  if (historyPayload) return historyPayload;
+  if (historyPromise) return historyPromise;
+
+  historyPromise = fetchHistoryData()
+    .then((payload) => {
+      historyPayload = payload;
+      return payload;
+    })
+    .finally(() => {
+      historyPromise = null;
+    });
+
+  return historyPromise;
+}
+
+async function fetchHistoryData() {
+  let lastError = null;
+
+  for (const source of HISTORY_DATA_SOURCES) {
+    try {
+      const response = await fetch(source(), { cache: "no-store" });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.detail || payload.error || "History request failed");
+      return payload;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error("History request failed");
+}
+
+function renderTrendLoading(symbol) {
+  const quote = quotes.find((item) => item.symbol === symbol);
+  trendTitle.textContent = `${symbol} ${quote?.shortName || ""}`.trim();
+  trendLast.textContent = quote ? `Last ${formatQuoteNumber(quote, quote.price)}` : "Last --";
+  trendChange.textContent = "Loading 5-year daily closes";
+  trendChange.className = "neutral";
+  trendPoints.textContent = "Loading";
+  trendSvg.innerHTML = `
+    <rect class="trend-frame" x="1" y="1" width="638" height="218" rx="8"></rect>
+    ${svgText(320, 112, "Loading 5-year daily close chart", "trend-empty-text", "middle")}
+  `;
+  trendNote.textContent = "Trend Chart uses daily closing price history for the past 5 years.";
+}
+
+function renderTrendError(symbol, message) {
+  trendTitle.textContent = `${symbol} Trend Chart`;
+  trendLast.textContent = "Last --";
+  trendChange.textContent = "History unavailable";
+  trendChange.className = "negative";
+  trendPoints.textContent = "0 points";
+  trendSvg.innerHTML = `
+    <rect class="trend-frame" x="1" y="1" width="638" height="218" rx="8"></rect>
+    ${svgText(320, 112, "Unable to load daily close history", "trend-empty-text", "middle")}
+  `;
+  trendNote.textContent = message;
+}
+
 function renderTrendChart(symbol) {
   const quote = quotes.find((item) => item.symbol === symbol);
   const points = trendPointsFor(symbol);
+  const history = historyPayload?.history?.[symbol];
 
   if (!quote) return;
 
@@ -240,7 +281,7 @@ function renderTrendChart(symbol) {
   trendLast.textContent = `Last ${formatQuoteNumber(quote, quote.price)}`;
   trendChange.textContent = `Move ${formatNumber(quote.change)} (${formatNumber(quote.changePercent)}%)`;
   trendChange.className = movementClass(quote.change);
-  trendPoints.textContent = `${points.length} point${points.length === 1 ? "" : "s"}`;
+  trendPoints.textContent = `${points.length} daily closes`;
 
   const chartWidth = 640;
   const chartHeight = 220;
@@ -253,11 +294,11 @@ function renderTrendChart(symbol) {
       <rect class="trend-frame" x="1" y="1" width="638" height="218" rx="8"></rect>
       ${svgText(320, 112, "Waiting for live quote history", "trend-empty-text", "middle")}
     `;
-    trendNote.textContent = "The chart will appear after this counter receives a quote refresh.";
+    trendNote.textContent = "No 5-year daily close history is available for this counter yet.";
     return;
   }
 
-  const prices = points.map((point) => point.p);
+  const prices = points.map(pointClose).filter((value) => typeof value === "number");
   const minPrice = Math.min(...prices);
   const maxPrice = Math.max(...prices);
   const range = maxPrice - minPrice || Math.max(Math.abs(maxPrice) * 0.01, 1);
@@ -268,7 +309,8 @@ function renderTrendChart(symbol) {
 
   const coords = points.map((point, index) => {
     const x = padding.left + (points.length > 1 ? index * xStep : innerWidth / 2);
-    const y = padding.top + (1 - (point.p - yMin) / yRange) * innerHeight;
+    const price = pointClose(point);
+    const y = padding.top + (1 - (price - yMin) / yRange) * innerHeight;
     return { x, y, point };
   });
   const path = coords.map(({ x, y }) => `${x.toFixed(2)},${y.toFixed(2)}`).join(" ");
@@ -277,8 +319,8 @@ function renderTrendChart(symbol) {
     .join(" L ")} L ${coords.at(-1).x.toFixed(2)} ${chartHeight - padding.bottom} Z`;
   const lineClass = quote.change >= 0 ? "trend-line positive-line" : "trend-line negative-line";
   const dotClass = quote.change >= 0 ? "trend-dot positive-dot" : "trend-dot negative-dot";
-  const startTime = formatTime(points[0].t).replace(/\sGMT.*$/, "");
-  const endTime = formatTime(points.at(-1).t).replace(/\sGMT.*$/, "");
+  const startTime = formatDate(points[0].t);
+  const endTime = formatDate(points.at(-1).t);
   const grid = [0, 0.5, 1]
     .map((ratio) => {
       const y = padding.top + ratio * innerHeight;
@@ -299,14 +341,22 @@ function renderTrendChart(symbol) {
     ${svgText(padding.left, chartHeight - 10, startTime, "trend-axis-text")}
     ${svgText(chartWidth - padding.right, chartHeight - 10, endTime, "trend-axis-text", "end")}
   `;
-  trendNote.textContent = "Trend is stored in this browser and updates whenever this page refreshes market quotes.";
+  const sourceSymbol = history?.sourceSymbol ? ` (${history.sourceSymbol})` : "";
+  trendNote.textContent = `Daily closing prices for the past 5 years from ${historyPayload?.source || "history data"}${sourceSymbol}.`;
 }
 
-function openTrend(symbol) {
+async function openTrend(symbol) {
   openTrendSymbol = symbol;
-  renderTrendChart(symbol);
   trendPanel.hidden = false;
+  renderTrendLoading(symbol);
   trendCloseButton.focus();
+
+  try {
+    await loadHistoryData();
+    if (openTrendSymbol === symbol) renderTrendChart(symbol);
+  } catch (error) {
+    if (openTrendSymbol === symbol) renderTrendError(symbol, error.message);
+  }
 }
 
 function closeTrend() {
@@ -527,7 +577,6 @@ async function loadQuotes() {
     });
 
     const timestamp = payloadTime(payload);
-    recordTrendHistory(quotes, timestamp);
     render();
     const stamp = new Intl.DateTimeFormat(undefined, {
       hour: "2-digit",
