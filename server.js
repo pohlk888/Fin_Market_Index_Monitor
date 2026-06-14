@@ -16,6 +16,7 @@ const SPY_DRAWDOWN_ALARM_PERCENT = Number(process.env.SPY_DRAWDOWN_ALARM_PERCENT
 const ALERT_EMAIL_TO = process.env.ALERT_EMAIL_TO || "pohlk888@gmail.com";
 const ALERT_EMAIL_COOLDOWN_MS = Number(process.env.ALERT_EMAIL_COOLDOWN_MS || 6 * 60 * 60 * 1000);
 const ALARM_SYMBOLS = ["SPY", "SPX", "ES1!"];
+const STATIC_QUOTES_PATH = join(__dirname, "data", "quotes.json");
 const PRICE_ALARM_CRITERIA = {
   GOLD: { label: "< 4100", threshold: 4100, direction: "below" },
   SGDMYR: { label: "< 3.0500", threshold: 3.05, direction: "below" },
@@ -24,6 +25,8 @@ const PRICE_ALARM_CRITERIA = {
 };
 const DEFAULT_ALLOWED_ORIGINS = [
   "https://pohlk888.github.io",
+  "http://127.0.0.1:8000",
+  "http://localhost:8000",
   "http://127.0.0.1:4173",
   "http://localhost:4173",
 ];
@@ -182,20 +185,44 @@ export async function fetchQuotes(symbols = DEFAULT_SYMBOLS) {
   const requestedByTv = new Map(requested.map((item) => [item.tv, item]));
   const scanners = [...new Set(requested.map((item) => item.scanner))];
   const results = await Promise.all(scanners.map((scanner) => fetchTradingViewScanner(scanner, requested)));
-  const quotes = results
+  const liveQuotes = results
     .flat()
     .map((row) => compactTradingViewQuote(row, requestedByTv))
     .filter(Boolean);
+  const fallbackQuotes = await savedQuotesForMissingSymbols(requested, liveQuotes);
+  const quotes = [...liveQuotes, ...fallbackQuotes];
+  const missing = requested.filter((item) => !quotes.some((q) => q.symbol === item.symbol)).map((item) => item.symbol);
   const payload = {
-    source: "TradingView",
+    source: fallbackQuotes.length ? "TradingView + saved fallback" : "TradingView",
     fetchedAt: now,
     quotes,
-    missing: requested.filter((item) => !quotes.some((q) => q.symbol === item.symbol)).map((item) => item.symbol),
+    missing,
   };
 
   payload.alerts = await evaluateSpyDrawdownAlarm(quotes, now);
   cache = { key, fetchedAt: now, payload };
   return { ...payload, cached: false };
+}
+
+async function savedQuotesForMissingSymbols(requested, liveQuotes) {
+  const liveSymbols = new Set(liveQuotes.map((quote) => quote.symbol));
+  const missingSymbols = requested.map((item) => item.symbol).filter((symbol) => !liveSymbols.has(symbol));
+  if (!missingSymbols.length) return [];
+
+  try {
+    const payload = JSON.parse(await readFile(STATIC_QUOTES_PATH, "utf8"));
+    const savedQuotes = Array.isArray(payload.quotes) ? payload.quotes : [];
+    return missingSymbols
+      .map((symbol) => savedQuotes.find((quote) => quote.symbol === symbol))
+      .filter(Boolean)
+      .map((quote) => ({
+        ...quote,
+        source: "saved-fallback",
+        fallback: true,
+      }));
+  } catch {
+    return [];
+  }
 }
 
 async function evaluateSpyDrawdownAlarm(quotes, now) {
