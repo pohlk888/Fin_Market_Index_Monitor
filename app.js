@@ -57,6 +57,7 @@ const trendTitle = document.querySelector("#trendTitle");
 const trendLast = document.querySelector("#trendLast");
 const trendChange = document.querySelector("#trendChange");
 const trendPoints = document.querySelector("#trendPoints");
+const trendLegend = document.querySelector("#trendLegend");
 const trendSvg = document.querySelector("#trendSvg");
 const trendNote = document.querySelector("#trendNote");
 const trendCloseButton = document.querySelector("#trendCloseButton");
@@ -210,6 +211,20 @@ function pointClose(point) {
   return typeof point?.c === "number" ? point.c : point?.p;
 }
 
+function movingAverageSeries(points, windowSize) {
+  let sum = 0;
+  return points.map((point, index) => {
+    const close = pointClose(point);
+    sum += close;
+    if (index >= windowSize) sum -= pointClose(points[index - windowSize]);
+
+    return {
+      t: point.t,
+      value: index >= windowSize - 1 ? sum / windowSize : null,
+    };
+  });
+}
+
 async function loadHistoryData() {
   if (historyPayload) return historyPayload;
   if (historyPromise) return historyPromise;
@@ -250,6 +265,7 @@ function renderTrendLoading(symbol) {
   trendChange.textContent = "Loading 5-year daily closes";
   trendChange.className = "neutral";
   trendPoints.textContent = "Loading";
+  trendLegend.innerHTML = "";
   trendSvg.innerHTML = `
     <rect class="trend-frame" x="1" y="1" width="638" height="218" rx="8"></rect>
     ${svgText(320, 112, "Loading 5-year daily close chart", "trend-empty-text", "middle")}
@@ -263,6 +279,7 @@ function renderTrendError(symbol, message) {
   trendChange.textContent = "History unavailable";
   trendChange.className = "negative";
   trendPoints.textContent = "0 points";
+  trendLegend.innerHTML = "";
   trendSvg.innerHTML = `
     <rect class="trend-frame" x="1" y="1" width="638" height="218" rx="8"></rect>
     ${svgText(320, 112, "Unable to load daily close history", "trend-empty-text", "middle")}
@@ -299,21 +316,40 @@ function renderTrendChart(symbol) {
   }
 
   const prices = points.map(pointClose).filter((value) => typeof value === "number");
-  const minPrice = Math.min(...prices);
-  const maxPrice = Math.max(...prices);
+  const ma20 = movingAverageSeries(points, 20);
+  const ma200 = movingAverageSeries(points, 200);
+  const maValues = [...ma20, ...ma200]
+    .map((point) => point.value)
+    .filter((value) => typeof value === "number" && Number.isFinite(value));
+  const chartValues = [...prices, ...maValues];
+  const minPrice = Math.min(...chartValues);
+  const maxPrice = Math.max(...chartValues);
   const range = maxPrice - minPrice || Math.max(Math.abs(maxPrice) * 0.01, 1);
   const yMin = minPrice - range * 0.08;
   const yMax = maxPrice + range * 0.08;
   const yRange = yMax - yMin || 1;
   const xStep = points.length > 1 ? innerWidth / (points.length - 1) : 0;
 
+  const xForIndex = (index) => padding.left + (points.length > 1 ? index * xStep : innerWidth / 2);
+  const yForPrice = (price) => padding.top + (1 - (price - yMin) / yRange) * innerHeight;
   const coords = points.map((point, index) => {
     const x = padding.left + (points.length > 1 ? index * xStep : innerWidth / 2);
     const price = pointClose(point);
-    const y = padding.top + (1 - (price - yMin) / yRange) * innerHeight;
+    const y = yForPrice(price);
     return { x, y, point };
   });
+  const movingAveragePath = (series) =>
+    series
+      .map((point, index) =>
+        typeof point.value === "number" && Number.isFinite(point.value)
+          ? `${xForIndex(index).toFixed(2)},${yForPrice(point.value).toFixed(2)}`
+          : null,
+      )
+      .filter(Boolean)
+      .join(" ");
   const path = coords.map(({ x, y }) => `${x.toFixed(2)},${y.toFixed(2)}`).join(" ");
+  const ma20Path = movingAveragePath(ma20);
+  const ma200Path = movingAveragePath(ma200);
   const areaPath = `M ${coords[0].x.toFixed(2)} ${chartHeight - padding.bottom} L ${path
     .split(" ")
     .join(" L ")} L ${coords.at(-1).x.toFixed(2)} ${chartHeight - padding.bottom} Z`;
@@ -332,11 +368,18 @@ function renderTrendChart(symbol) {
     })
     .join("");
 
+  trendLegend.innerHTML = `
+    <span><i class="${quote.change >= 0 ? "positive-dot" : "negative-dot"}"></i>Close</span>
+    <span><i class="ma20-dot"></i>20 days MA</span>
+    <span><i class="ma200-dot"></i>200 days MA</span>
+  `;
   trendSvg.innerHTML = `
     <rect class="trend-frame" x="1" y="1" width="638" height="218" rx="8"></rect>
     ${grid}
     <path class="trend-area" d="${areaPath}"></path>
     ${points.length > 1 ? `<polyline class="${lineClass}" points="${path}"></polyline>` : ""}
+    ${ma200Path ? `<polyline class="trend-ma-line ma200-line" points="${ma200Path}"></polyline>` : ""}
+    ${ma20Path ? `<polyline class="trend-ma-line ma20-line" points="${ma20Path}"></polyline>` : ""}
     <circle class="${dotClass}" cx="${coords.at(-1).x}" cy="${coords.at(-1).y}" r="4"></circle>
     ${svgText(padding.left, chartHeight - 10, startTime, "trend-axis-text")}
     ${svgText(chartWidth - padding.right, chartHeight - 10, endTime, "trend-axis-text", "end")}

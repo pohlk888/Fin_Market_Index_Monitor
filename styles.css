@@ -581,6 +581,29 @@ tbody tr.alarm-row:hover {
   white-space: nowrap;
 }
 
+.trend-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.trend-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.trend-legend i {
+  width: 22px;
+  height: 3px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
 .trend-svg {
   width: 100%;
   min-height: 220px;
@@ -608,12 +631,27 @@ tbody tr.alarm-row:hover {
   stroke-linejoin: round;
 }
 
+.trend-ma-line {
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .positive-line {
   stroke: var(--green);
 }
 
 .negative-line {
   stroke: var(--red);
+}
+
+.ma20-line {
+  stroke: var(--cyan);
+}
+
+.ma200-line {
+  stroke: var(--amber);
 }
 
 .trend-dot {
@@ -627,6 +665,22 @@ tbody tr.alarm-row:hover {
 
 .negative-dot {
   fill: var(--red);
+}
+
+.trend-legend .positive-dot {
+  background: var(--green);
+}
+
+.trend-legend .negative-dot {
+  background: var(--red);
+}
+
+.ma20-dot {
+  background: var(--cyan);
+}
+
+.ma200-dot {
+  background: var(--amber);
 }
 
 .trend-axis-text,
