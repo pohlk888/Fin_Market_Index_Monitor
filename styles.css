@@ -589,7 +589,7 @@ tbody tr.alarm-row:hover {
   .tab {
     min-width: 0;
     padding: 0 6px;
-    font-size: 0.82rem;
+    font-size: 0.78rem;
   }
 
   .alert-control {
@@ -620,6 +620,10 @@ tbody tr.alarm-row:hover {
 
   #statusText {
     font-size: 0.86rem;
+  }
+
+  .tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .quote-card-price {

@@ -12,6 +12,11 @@ const SYMBOLS = [
   { symbol: "STI", group: "index" },
   { symbol: "N225", group: "index" },
   { symbol: "HSI", group: "index" },
+  { symbol: "SHCOMP", group: "china" },
+  { symbol: "CSI300", group: "china" },
+  { symbol: "SZCOMP", group: "china" },
+  { symbol: "TAIEX", group: "taiwan" },
+  { symbol: "JCI", group: "indonesia" },
   { symbol: "ES1!", group: "future" },
   { symbol: "NQ1!", group: "future" },
   { symbol: "YM1!", group: "future" },
@@ -122,6 +127,9 @@ function groupLabel(group) {
   return {
     etf: "ETF",
     index: "Index",
+    china: "China",
+    taiwan: "Taiwan",
+    indonesia: "Indonesia",
     future: "Future",
   }[group] || group;
 }
