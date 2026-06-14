@@ -137,6 +137,12 @@ function feedLabel(value) {
   return value.replaceAll("_", " ");
 }
 
+function alarmCriteriaLabel(value) {
+  if (!value || value === "--") return "--";
+  const percent = String(value).match(/-?\d+(?:\.\d+)?%/);
+  return percent ? percent[0] : value;
+}
+
 function spyAlarmThreshold() {
   return alerts.spyDrawdown?.thresholdPercent ?? 3.5;
 }
@@ -204,7 +210,7 @@ function renderTable() {
           <td class="num ${moveClass}">${formatNumber(quote.changePercent)}%</td>
           <td class="num">${formatNumber(quote.allTimeHigh)}</td>
           <td class="num ${movementClass(quote.drawdownPercent)}">${formatNumber(quote.drawdownPercent)}%</td>
-          <td><span class="criteria ${quote.alarmTriggered ? "criteria-hot" : ""}">${quote.alarmCriteria || "--"}</span></td>
+          <td><span class="criteria ${quote.alarmTriggered ? "criteria-hot" : ""}">${alarmCriteriaLabel(quote.alarmCriteria)}</span></td>
           <td class="num">${range}</td>
           <td class="num">${formatVolume(quote.volume)}</td>
           <td>${formatTime(quote.marketTime)}</td>
@@ -260,7 +266,7 @@ function renderTable() {
             </div>
           </dl>
           <div class="quote-card-criteria ${quote.alarmTriggered ? "criteria-hot" : ""}">
-            ${quote.alarmCriteria || "--"}
+            ${alarmCriteriaLabel(quote.alarmCriteria)}
           </div>
         </article>
       `;
