@@ -27,6 +27,7 @@ const STATIC_DATA_SOURCES = [
 ];
 
 const quoteBody = document.querySelector("#quoteBody");
+const quoteCards = document.querySelector("#quoteCards");
 const searchInput = document.querySelector("#searchInput");
 const refreshButton = document.querySelector("#refreshButton");
 const statusText = document.querySelector("#statusText");
@@ -39,6 +40,7 @@ const testAlertButton = document.querySelector("#testAlertButton");
 const testAlertStatus = document.querySelector("#testAlertStatus");
 const tabs = [...document.querySelectorAll(".tab")];
 const API_BASE_URL = String(window.MARKET_MONITOR_CONFIG?.apiBaseUrl || "").replace(/\/+$/, "");
+const FORCE_STATIC_DATA = new URLSearchParams(window.location.search).has("static");
 
 let quotes = [];
 let alerts = {};
@@ -58,11 +60,11 @@ function apiUrl(path) {
 }
 
 function usesStaticMarketData() {
-  return isGitHubPagesHost() && !hasRemoteApi();
+  return FORCE_STATIC_DATA || (isGitHubPagesHost() && !hasRemoteApi());
 }
 
 function canUseStaticFallback() {
-  return isGitHubPagesHost();
+  return FORCE_STATIC_DATA || isGitHubPagesHost();
 }
 
 function payloadTime(payload) {
@@ -98,6 +100,12 @@ function formatTime(value) {
     second: "2-digit",
     timeZoneName: "short",
   }).format(new Date(value));
+}
+
+function formatRange(quote) {
+  return quote.dayLow != null && quote.dayHigh != null
+    ? `${formatNumber(quote.dayLow)} - ${formatNumber(quote.dayHigh)}`
+    : "--";
 }
 
 function movementClass(value) {
@@ -176,6 +184,7 @@ function renderTable() {
 
   if (!rows.length) {
     quoteBody.innerHTML = `<tr><td colspan="13" class="empty">No matching markets</td></tr>`;
+    quoteCards.innerHTML = `<div class="empty-card">No matching markets</div>`;
     return;
   }
 
@@ -183,10 +192,7 @@ function renderTable() {
     .map((quote) => {
       const group = groupFor(quote.symbol);
       const moveClass = movementClass(quote.change);
-      const range =
-        quote.dayLow != null && quote.dayHigh != null
-          ? `${formatNumber(quote.dayLow)} - ${formatNumber(quote.dayHigh)}`
-          : "--";
+      const range = formatRange(quote);
 
       return `
         <tr class="${isSpyAlarmTriggered(quote) ? "alarm-row" : ""}">
@@ -204,6 +210,59 @@ function renderTable() {
           <td>${formatTime(quote.marketTime)}</td>
           <td><span class="badge">${feedLabel(quote.marketState)}</span></td>
         </tr>
+      `;
+    })
+    .join("");
+
+  quoteCards.innerHTML = rows
+    .map((quote) => {
+      const group = groupFor(quote.symbol);
+      const moveClass = movementClass(quote.change);
+      const alarmClass = isSpyAlarmTriggered(quote) ? " alarm-card-hot" : "";
+
+      return `
+        <article class="quote-card${alarmClass}">
+          <div class="quote-card-head">
+            <div>
+              <strong>${quote.symbol}</strong>
+              <span>${quote.shortName || "--"}</span>
+            </div>
+            <em>${groupLabel(group)}</em>
+          </div>
+          <div class="quote-card-price">
+            <span>${formatNumber(quote.price)}</span>
+            <b class="${moveClass}">${formatNumber(quote.change)} (${formatNumber(quote.changePercent)}%)</b>
+          </div>
+          <dl class="quote-card-grid">
+            <div>
+              <dt>All-Time High</dt>
+              <dd>${formatNumber(quote.allTimeHigh)}</dd>
+            </div>
+            <div>
+              <dt>Drawdown</dt>
+              <dd class="${movementClass(quote.drawdownPercent)}">${formatNumber(quote.drawdownPercent)}%</dd>
+            </div>
+            <div>
+              <dt>Day Range</dt>
+              <dd>${formatRange(quote)}</dd>
+            </div>
+            <div>
+              <dt>Volume</dt>
+              <dd>${formatVolume(quote.volume)}</dd>
+            </div>
+            <div>
+              <dt>Updated</dt>
+              <dd>${formatTime(quote.marketTime)}</dd>
+            </div>
+            <div>
+              <dt>Feed</dt>
+              <dd>${feedLabel(quote.marketState)}</dd>
+            </div>
+          </dl>
+          <div class="quote-card-criteria ${quote.alarmTriggered ? "criteria-hot" : ""}">
+            ${quote.alarmCriteria || "--"}
+          </div>
+        </article>
       `;
     })
     .join("");
