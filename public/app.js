@@ -221,6 +221,13 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
+function formatMonth(value) {
+  if (!value) return "--";
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+  }).format(new Date(value));
+}
+
 function pointClose(point) {
   return typeof point?.c === "number" ? point.c : point?.p;
 }
@@ -270,6 +277,55 @@ function pivotHighLowLevels(points, length = 50) {
     mid: (high + low) / 2,
     length: pivotPoints.length,
   };
+}
+
+function niceStep(rawStep) {
+  const exponent = Math.floor(Math.log10(rawStep || 1));
+  const base = 10 ** exponent;
+  const fraction = rawStep / base;
+  const niceFraction = fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10;
+  return niceFraction * base;
+}
+
+function niceScale(minValue, maxValue, tickCount = 5) {
+  if (!Number.isFinite(minValue) || !Number.isFinite(maxValue)) {
+    return { min: 0, max: 1, ticks: [0, 0.25, 0.5, 0.75, 1] };
+  }
+
+  if (minValue === maxValue) {
+    const padding = Math.max(Math.abs(minValue) * 0.05, 1);
+    minValue -= padding;
+    maxValue += padding;
+  }
+
+  const step = niceStep((maxValue - minValue) / Math.max(tickCount - 1, 1));
+  const min = Math.floor(minValue / step) * step;
+  const max = Math.ceil(maxValue / step) * step;
+  const ticks = [];
+
+  for (let value = min; value <= max + step * 0.5; value += step) {
+    ticks.push(Number(value.toFixed(10)));
+  }
+
+  return { min, max, ticks };
+}
+
+function monthTicks(points, maxTicks = 7) {
+  const byMonth = [];
+  let previousKey = "";
+
+  points.forEach((point, index) => {
+    const date = new Date(point.t);
+    const key = `${date.getFullYear()}-${date.getMonth()}`;
+    if (key !== previousKey) {
+      byMonth.push({ index, t: point.t });
+      previousKey = key;
+    }
+  });
+
+  if (!byMonth.length) return [];
+  const step = Math.max(1, Math.ceil(byMonth.length / maxTicks));
+  return byMonth.filter((_, index) => index % step === 0).slice(0, maxTicks);
 }
 
 async function loadHistoryData() {
@@ -369,7 +425,7 @@ function renderTrendChart(symbol) {
   const allMa200 = movingAverageSeries(points, 200);
   const ma20 = allMa20.slice(startIndex);
   const ma200 = allMa200.slice(startIndex);
-  const pivots = pivotHighLowLevels(points, 50);
+  const pivots = pivotHighLowLevels(points, 200);
   const ohlcValues = visiblePoints
     .flatMap((point) => [pointHigh(point), pointLow(point), pointOpen(point), pointClose(point)])
     .filter((value) => typeof value === "number");
@@ -380,9 +436,10 @@ function renderTrendChart(symbol) {
   const chartValues = [...ohlcValues, ...maValues, ...pivotValues];
   const minPrice = Math.min(...chartValues);
   const maxPrice = Math.max(...chartValues);
-  const range = maxPrice - minPrice || Math.max(Math.abs(maxPrice) * 0.01, 1);
-  const yMin = minPrice - range * 0.08;
-  const yMax = maxPrice + range * 0.08;
+  const rawRange = maxPrice - minPrice || Math.max(Math.abs(maxPrice) * 0.01, 1);
+  const scale = niceScale(minPrice - rawRange * 0.05, maxPrice + rawRange * 0.05, 5);
+  const yMin = scale.min;
+  const yMax = scale.max;
   const yRange = yMax - yMin || 1;
   const xStep = visiblePoints.length > 1 ? innerWidth / (visiblePoints.length - 1) : 0;
 
@@ -422,21 +479,29 @@ function renderTrendChart(symbol) {
     .join("");
   const startTime = formatDate(visiblePoints[0].t);
   const endTime = formatDate(visiblePoints.at(-1).t);
-  const grid = [0, 0.5, 1]
-    .map((ratio) => {
-      const y = padding.top + ratio * innerHeight;
-      const price = yMax - ratio * yRange;
+  const yGrid = scale.ticks
+    .map((price) => {
+      const y = yForPrice(price);
       return `
         <line class="trend-grid-line" x1="${padding.left}" x2="${chartWidth - padding.right}" y1="${y}" y2="${y}"></line>
         ${svgText(chartWidth - padding.right + 8, y + 4, formatQuoteNumber(quote, price))}
       `;
     })
     .join("");
+  const xGrid = monthTicks(visiblePoints, trendExpanded ? 10 : 7)
+    .map((tick) => {
+      const x = xForIndex(tick.index);
+      return `
+        <line class="trend-grid-line trend-grid-vertical" x1="${x.toFixed(2)}" x2="${x.toFixed(2)}" y1="${padding.top}" y2="${chartHeight - padding.bottom}"></line>
+        ${svgText(x.toFixed(2), chartHeight - 18, formatMonth(tick.t), "trend-axis-text", "middle")}
+      `;
+    })
+    .join("");
   const pivotLines = pivots
     ? [
-        ["High 50", pivots.high, "pivot-high"],
-        ["Mid 50", pivots.mid, "pivot-mid"],
-        ["Low 50", pivots.low, "pivot-low"],
+        ["High 200", pivots.high, "pivot-high"],
+        ["Mid 200", pivots.mid, "pivot-mid"],
+        ["Low 200", pivots.low, "pivot-low"],
       ]
         .map(([label, value, className]) => {
           const y = yForPrice(value);
@@ -453,20 +518,23 @@ function renderTrendChart(symbol) {
     <span><i class="candle-down-dot"></i>Down candle</span>
     <span><i class="ma20-dot"></i>20 days MA</span>
     <span><i class="ma200-dot"></i>200 days MA</span>
-    <span><i class="pivot-dot"></i>Pivot Point High Low (50)</span>
+    <span><i class="pivot-dot"></i>Pivot Point High Low (200)</span>
   `;
   trendSvg.innerHTML = `
     <rect class="trend-frame" x="1" y="1" width="718" height="298" rx="8"></rect>
-    ${grid}
+    ${yGrid}
+    ${xGrid}
     ${pivotLines}
     ${candles}
     ${ma200Path ? `<polyline class="trend-ma-line ma200-line" points="${ma200Path}"></polyline>` : ""}
     ${ma20Path ? `<polyline class="trend-ma-line ma20-line" points="${ma20Path}"></polyline>` : ""}
     ${svgText(padding.left, chartHeight - 10, startTime, "trend-axis-text")}
     ${svgText(chartWidth - padding.right, chartHeight - 10, endTime, "trend-axis-text", "end")}
+    ${svgText(chartWidth / 2, chartHeight - 4, "by Month", "trend-axis-title", "middle")}
+    <text x="9" y="${chartHeight / 2}" class="trend-axis-title" text-anchor="middle" transform="rotate(-90 9 ${chartHeight / 2})">Market Value</text>
   `;
   const sourceSymbol = history?.sourceSymbol ? ` (${history.sourceSymbol})` : "";
-  trendNote.textContent = `Daily OHLC prices for the past 5 years from ${historyPayload?.source || "history data"}${sourceSymbol}. Pivot Point High Low uses the latest ${pivots?.length || 50} trading days.`;
+  trendNote.textContent = `Daily OHLC prices for the past 5 years from ${historyPayload?.source || "history data"}${sourceSymbol}. Pivot Point High Low uses the latest ${pivots?.length || 200} trading days.`;
 }
 
 async function openTrend(symbol) {

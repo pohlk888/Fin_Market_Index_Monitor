@@ -650,6 +650,11 @@ tbody tr.alarm-row:hover {
 .trend-grid-line {
   stroke: #e3e8f0;
   stroke-width: 1;
+  stroke-dasharray: 4 5;
+}
+
+.trend-grid-vertical {
+  stroke: #edf1f7;
 }
 
 .trend-area {
@@ -762,6 +767,12 @@ tbody tr.alarm-row:hover {
   fill: #536072;
   font-size: 12px;
   font-weight: 700;
+}
+
+.trend-axis-title {
+  fill: #1f2937;
+  font-size: 12px;
+  font-weight: 850;
 }
 
 .trend-empty-text {
