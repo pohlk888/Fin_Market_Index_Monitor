@@ -349,6 +349,10 @@ function monthTicks(points, maxTicks = 7) {
   return byMonth.filter((_, index) => index % step === 0).slice(0, maxTicks);
 }
 
+function monthLabel(timestamp) {
+  return new Date(timestamp).toLocaleString("en-US", { month: "short" });
+}
+
 async function loadHistoryData() {
   if (historyPayload) return historyPayload;
   if (historyPromise) return historyPromise;
@@ -525,6 +529,7 @@ function renderTrendChart(symbol) {
       const x = xForIndex(tick.index);
       return `
         <line class="trend-grid-line trend-grid-vertical" x1="${x.toFixed(2)}" x2="${x.toFixed(2)}" y1="${padding.top}" y2="${chartHeight - padding.bottom}"></line>
+        ${svgText(x.toFixed(2), chartHeight - 16, monthLabel(tick.t), "trend-axis-text trend-month-text", "middle")}
       `;
     })
     .join("");
@@ -559,7 +564,7 @@ function renderTrendChart(symbol) {
     ${candles}
     ${ma200Path ? `<polyline class="trend-ma-line ma200-line" points="${ma200Path}"></polyline>` : ""}
     ${ma20Path ? `<polyline class="trend-ma-line ma20-line" points="${ma20Path}"></polyline>` : ""}
-    <text x="9" y="${chartHeight / 2}" class="trend-axis-title" text-anchor="middle" transform="rotate(-90 9 ${chartHeight / 2})">Market Value</text>
+    <text x="9" y="${chartHeight / 2}" class="trend-axis-title" text-anchor="middle" transform="rotate(-90 9 ${chartHeight / 2})">Value</text>
   `;
   const sourceSymbol = history?.sourceSymbol ? ` (${history.sourceSymbol})` : "";
   trendNote.textContent = `Daily OHLC prices for the past 5 years from ${historyPayload?.source || "history data"}${sourceSymbol}. Drag across the chart to zoom into any month range.`;
