@@ -350,7 +350,9 @@ function monthTicks(points, maxTicks = 7) {
 }
 
 function monthLabel(timestamp) {
-  return new Date(timestamp).toLocaleString("en-US", { month: "short" });
+  const date = new Date(timestamp);
+  const month = date.toLocaleString("en-US", { month: "short" });
+  return `${month} '${String(date.getFullYear()).slice(-2)}`;
 }
 
 async function loadHistoryData() {
@@ -529,7 +531,7 @@ function renderTrendChart(symbol) {
       const x = xForIndex(tick.index);
       return `
         <line class="trend-grid-line trend-grid-vertical" x1="${x.toFixed(2)}" x2="${x.toFixed(2)}" y1="${padding.top}" y2="${chartHeight - padding.bottom}"></line>
-        ${svgText(x.toFixed(2), chartHeight - 16, monthLabel(tick.t), "trend-axis-text trend-month-text", "middle")}
+        ${svgText(x.toFixed(2), chartHeight - 14, monthLabel(tick.t), "trend-axis-text trend-month-text", "middle")}
       `;
     })
     .join("");
