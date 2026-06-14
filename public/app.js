@@ -221,13 +221,6 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
-function formatMonth(value) {
-  if (!value) return "--";
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-  }).format(new Date(value));
-}
-
 function pointClose(point) {
   return typeof point?.c === "number" ? point.c : point?.p;
 }
@@ -477,8 +470,6 @@ function renderTrendChart(symbol) {
       `;
     })
     .join("");
-  const startTime = formatDate(visiblePoints[0].t);
-  const endTime = formatDate(visiblePoints.at(-1).t);
   const yGrid = scale.ticks
     .map((price) => {
       const y = yForPrice(price);
@@ -493,21 +484,19 @@ function renderTrendChart(symbol) {
       const x = xForIndex(tick.index);
       return `
         <line class="trend-grid-line trend-grid-vertical" x1="${x.toFixed(2)}" x2="${x.toFixed(2)}" y1="${padding.top}" y2="${chartHeight - padding.bottom}"></line>
-        ${svgText(x.toFixed(2), chartHeight - 18, formatMonth(tick.t), "trend-axis-text", "middle")}
       `;
     })
     .join("");
   const pivotLines = pivots
     ? [
-        ["High 200", pivots.high, "pivot-high"],
-        ["Mid 200", pivots.mid, "pivot-mid"],
-        ["Low 200", pivots.low, "pivot-low"],
+        [pivots.high, "pivot-high"],
+        [pivots.mid, "pivot-mid"],
+        [pivots.low, "pivot-low"],
       ]
-        .map(([label, value, className]) => {
+        .map(([value, className]) => {
           const y = yForPrice(value);
           return `
             <line class="pivot-line ${className}" x1="${padding.left}" x2="${chartWidth - padding.right}" y1="${y.toFixed(2)}" y2="${y.toFixed(2)}"></line>
-            ${svgText(chartWidth - padding.right + 8, y + 4, label, `trend-axis-text ${className}`)}
           `;
         })
         .join("")
@@ -528,9 +517,6 @@ function renderTrendChart(symbol) {
     ${candles}
     ${ma200Path ? `<polyline class="trend-ma-line ma200-line" points="${ma200Path}"></polyline>` : ""}
     ${ma20Path ? `<polyline class="trend-ma-line ma20-line" points="${ma20Path}"></polyline>` : ""}
-    ${svgText(padding.left, chartHeight - 10, startTime, "trend-axis-text")}
-    ${svgText(chartWidth - padding.right, chartHeight - 10, endTime, "trend-axis-text", "end")}
-    ${svgText(chartWidth / 2, chartHeight - 4, "by Month", "trend-axis-title", "middle")}
     <text x="9" y="${chartHeight / 2}" class="trend-axis-title" text-anchor="middle" transform="rotate(-90 9 ${chartHeight / 2})">Market Value</text>
   `;
   const sourceSymbol = history?.sourceSymbol ? ` (${history.sourceSymbol})` : "";
