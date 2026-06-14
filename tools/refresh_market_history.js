@@ -84,13 +84,22 @@ async function fetchYahooDailyHistory(item, yahooSymbol) {
   const payload = await response.json();
   const result = payload.chart?.result?.[0];
   const timestamps = result?.timestamp || [];
-  const closes = result?.indicators?.quote?.[0]?.close || [];
+  const quote = result?.indicators?.quote?.[0] || {};
+  const opens = quote.open || [];
+  const highs = quote.high || [];
+  const lows = quote.low || [];
+  const closes = quote.close || [];
   const points = timestamps
     .map((timestamp, index) => ({
       t: timestamp * 1000,
+      o: typeof opens[index] === "number" ? opens[index] : closes[index],
+      h: typeof highs[index] === "number" ? highs[index] : closes[index],
+      l: typeof lows[index] === "number" ? lows[index] : closes[index],
       c: closes[index],
     }))
-    .filter((point) => typeof point.c === "number" && Number.isFinite(point.c));
+    .filter((point) =>
+      [point.o, point.h, point.l, point.c].every((value) => typeof value === "number" && Number.isFinite(value)),
+    );
 
   return {
     symbol: item.symbol,
@@ -122,7 +131,7 @@ async function main() {
   }
 
   const payload = {
-    source: "Yahoo Finance daily close",
+    source: "Yahoo Finance daily OHLC",
     range: "5y",
     interval: "1d",
     generatedAt: Date.now(),

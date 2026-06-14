@@ -530,6 +530,11 @@ tbody tr.alarm-row:hover {
   box-shadow: var(--shadow);
 }
 
+.trend-panel-expanded .trend-dialog {
+  width: min(1180px, calc(100vw - 20px));
+  max-height: calc(100vh - 20px);
+}
+
 .trend-head {
   display: flex;
   align-items: flex-start;
@@ -581,6 +586,31 @@ tbody tr.alarm-row:hover {
   white-space: nowrap;
 }
 
+.trend-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.trend-controls button {
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-soft);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 0 11px;
+}
+
+.trend-controls button:hover,
+.trend-controls button:focus-visible {
+  border-color: #5583d4;
+  outline: none;
+}
+
 .trend-legend {
   display: flex;
   flex-wrap: wrap;
@@ -606,17 +636,19 @@ tbody tr.alarm-row:hover {
 
 .trend-svg {
   width: 100%;
-  min-height: 220px;
+  min-height: 300px;
   display: block;
+  border-radius: 8px;
+  background: #ffffff;
 }
 
 .trend-frame {
-  fill: var(--bg-soft);
-  stroke: var(--border);
+  fill: #ffffff;
+  stroke: #d7dde8;
 }
 
 .trend-grid-line {
-  stroke: rgba(154, 167, 182, 0.2);
+  stroke: #e3e8f0;
   stroke-width: 1;
 }
 
@@ -647,7 +679,7 @@ tbody tr.alarm-row:hover {
 }
 
 .ma20-line {
-  stroke: var(--cyan);
+  stroke: #000000;
 }
 
 .ma200-line {
@@ -667,6 +699,32 @@ tbody tr.alarm-row:hover {
   fill: var(--red);
 }
 
+.candle-wick {
+  stroke-width: 1.35;
+}
+
+.candle-body {
+  stroke-width: 1;
+}
+
+.candle-up {
+  fill: var(--green);
+  stroke: var(--green);
+}
+
+.candle-down {
+  fill: var(--red);
+  stroke: var(--red);
+}
+
+.candle-up-dot {
+  background: var(--green);
+}
+
+.candle-down-dot {
+  background: var(--red);
+}
+
 .trend-legend .positive-dot {
   background: var(--green);
 }
@@ -676,16 +734,32 @@ tbody tr.alarm-row:hover {
 }
 
 .ma20-dot {
-  background: var(--cyan);
+  background: #000000;
 }
 
 .ma200-dot {
   background: var(--amber);
 }
 
+.pivot-dot {
+  background: #7b61ff;
+}
+
+.pivot-line {
+  stroke: #7b61ff;
+  stroke-width: 1.4;
+  stroke-dasharray: 6 5;
+}
+
+.pivot-r1,
+.pivot-p,
+.pivot-s1 {
+  fill: #5b46c8;
+}
+
 .trend-axis-text,
 .trend-empty-text {
-  fill: var(--muted);
+  fill: #536072;
   font-size: 12px;
   font-weight: 700;
 }
@@ -860,7 +934,7 @@ tbody tr.alarm-row:hover {
   }
 
   .trend-svg {
-    min-height: 190px;
+    min-height: 260px;
   }
 }
 
