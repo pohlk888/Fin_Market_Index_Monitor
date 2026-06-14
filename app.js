@@ -461,8 +461,7 @@ function renderTrendChart(symbol) {
   const maValues = [...ma20, ...ma200]
     .map((point) => point.value)
     .filter((value) => typeof value === "number" && Number.isFinite(value));
-  const pivotValues = pivots ? [pivots.high, pivots.mid, pivots.low] : [];
-  const chartValues = [...ohlcValues, ...maValues, ...pivotValues];
+  const chartValues = [...ohlcValues, ...maValues];
   const minPrice = Math.min(...chartValues);
   const maxPrice = Math.max(...chartValues);
   const rawRange = maxPrice - minPrice || Math.max(Math.abs(maxPrice) * 0.01, 1);
@@ -541,6 +540,7 @@ function renderTrendChart(symbol) {
         [pivots.mid, "pivot-mid"],
         [pivots.low, "pivot-low"],
       ]
+        .filter(([value]) => value >= yMin && value <= yMax)
         .map(([value, className]) => {
           const y = yForPrice(value);
           return `
