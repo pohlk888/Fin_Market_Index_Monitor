@@ -16,6 +16,11 @@ const SPY_DRAWDOWN_ALARM_PERCENT = Number(process.env.SPY_DRAWDOWN_ALARM_PERCENT
 const ALERT_EMAIL_TO = process.env.ALERT_EMAIL_TO || "pohlk888@gmail.com";
 const ALERT_EMAIL_COOLDOWN_MS = Number(process.env.ALERT_EMAIL_COOLDOWN_MS || 6 * 60 * 60 * 1000);
 const ALARM_SYMBOLS = ["SPY", "SPX", "ES1!"];
+const FOREX_ALARM_CRITERIA = {
+  SGDMYR: { label: "< 3.0500", threshold: 3.05, direction: "below" },
+  SGDIDR: { label: "> 14200", threshold: 14200, direction: "above" },
+  SGDCNY: { label: "< 5.1000", threshold: 5.1, direction: "below" },
+};
 const DEFAULT_ALLOWED_ORIGINS = [
   "https://pohlk888.github.io",
   "http://127.0.0.1:4173",
@@ -73,7 +78,11 @@ const MARKET_SYMBOLS = [
   { symbol: "N225", tv: "TVC:NI225", scanner: "global", group: "Index" },
   { symbol: "HSI", tv: "TVC:HSI", scanner: "global", group: "Index" },
   { symbol: "GOLD", tv: "TVC:GOLD", scanner: "global", group: "Gold" },
-  { symbol: "USDSGD", tv: "OANDA:USDSGD", scanner: "global", group: "FX" },
+  { symbol: "USDSGD", tv: "OANDA:USDSGD", scanner: "global", group: "Forex" },
+  { symbol: "SGDMYR", tv: "FX_IDC:SGDMYR", scanner: "global", group: "Forex" },
+  { symbol: "SGDIDR", tv: "FX_IDC:SGDIDR", scanner: "global", group: "Forex" },
+  { symbol: "SGDCNY", tv: "FX_IDC:SGDCNY", scanner: "global", group: "Forex" },
+  { symbol: "SGDTWD", tv: "FX_IDC:SGDTWD", scanner: "global", group: "Forex" },
   { symbol: "SHCOMP", tv: "SSE:000001", scanner: "global", group: "China" },
   { symbol: "CSI300", tv: "SSE:000300", scanner: "global", group: "China" },
   { symbol: "SZCOMP", tv: "SZSE:399001", scanner: "global", group: "China" },
@@ -216,7 +225,11 @@ async function evaluateSpyDrawdownAlarm(quotes, now) {
   const criteria = `${ALARM_SYMBOLS.join(", ")} drawdown <= -${SPY_DRAWDOWN_ALARM_PERCENT.toFixed(2)}%`;
 
   for (const quote of quotes) {
-    if (ALARM_SYMBOLS.includes(quote.symbol)) {
+    const forexAlarm = evaluateForexAlarm(quote);
+    if (forexAlarm) {
+      quote.alarmCriteria = forexAlarm.criteria;
+      quote.alarmTriggered = forexAlarm.triggered;
+    } else if (ALARM_SYMBOLS.includes(quote.symbol)) {
       quote.alarmCriteria = criteria;
       quote.alarmTriggered =
         typeof quote.drawdownPercent === "number" && quote.drawdownPercent <= triggerLevel;
@@ -246,6 +259,20 @@ function shouldSendSpyAlarmNotifications(now) {
   if (!hasEmailConfig()) return false;
   if (!spyAlarmState.active) return true;
   return now - spyAlarmState.lastNotificationAttemptAt >= ALERT_EMAIL_COOLDOWN_MS;
+}
+
+function evaluateForexAlarm(quote) {
+  const criteria = FOREX_ALARM_CRITERIA[quote.symbol];
+  if (!criteria) return null;
+  const price = quote.price;
+  const triggered =
+    typeof price === "number" &&
+    (criteria.direction === "below" ? price < criteria.threshold : price > criteria.threshold);
+
+  return {
+    criteria: criteria.label,
+    triggered,
+  };
 }
 
 function hasEmailConfig() {

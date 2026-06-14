@@ -14,6 +14,10 @@ const SYMBOLS = [
   { symbol: "HSI", group: "index" },
   { symbol: "GOLD", group: "gold" },
   { symbol: "USDSGD", group: "fx" },
+  { symbol: "SGDMYR", group: "fx" },
+  { symbol: "SGDIDR", group: "fx" },
+  { symbol: "SGDCNY", group: "fx" },
+  { symbol: "SGDTWD", group: "fx" },
   { symbol: "SHCOMP", group: "china" },
   { symbol: "CSI300", group: "china" },
   { symbol: "SZCOMP", group: "china" },
@@ -29,6 +33,10 @@ const SYMBOLS = [
 const ALARM_SYMBOLS = ["SPY", "SPX", "ES1!"];
 const PRICE_DIGITS = {
   USDSGD: 4,
+  SGDMYR: 4,
+  SGDIDR: 3,
+  SGDCNY: 4,
+  SGDTWD: 3,
 };
 const STATIC_DATA_MAX_AGE_MS = 10 * 60 * 1000;
 const STATIC_DATA_SOURCES = [
@@ -159,7 +167,7 @@ function groupLabel(group) {
     etf: "ETF",
     index: "Index",
     gold: "Gold",
-    fx: "FX",
+    fx: "Forex",
     china: "China",
     taiwan: "Taiwan",
     indonesia: "Indonesia",
@@ -528,7 +536,7 @@ function renderTable() {
       const range = formatRange(quote);
 
       return `
-        <tr class="${isSpyAlarmTriggered(quote) ? "alarm-row" : ""}" data-symbol="${quote.symbol}" tabindex="0">
+        <tr class="${quote.alarmTriggered ? "alarm-row" : ""}" data-symbol="${quote.symbol}" tabindex="0">
           <td><span class="symbol">${quote.symbol}</span></td>
           <td><button class="trend-open" type="button" data-symbol="${quote.symbol}">Trend Chart</button></td>
           <td><div class="name" title="${quote.shortName}">${quote.shortName}</div></td>
@@ -552,7 +560,7 @@ function renderTable() {
     .map((quote) => {
       const group = groupFor(quote.symbol);
       const moveClass = movementClass(quote.change);
-      const alarmClass = isSpyAlarmTriggered(quote) ? " alarm-card-hot" : "";
+      const alarmClass = quote.alarmTriggered ? " alarm-card-hot" : "";
 
       return `
         <article class="quote-card${alarmClass}" data-symbol="${quote.symbol}" tabindex="0">
