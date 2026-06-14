@@ -20,6 +20,8 @@ const symbols = [
   "STI",
   "N225",
   "HSI",
+  "GOLD",
+  "USDSGD",
   "SHCOMP",
   "CSI300",
   "SZCOMP",

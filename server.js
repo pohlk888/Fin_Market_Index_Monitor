@@ -72,6 +72,8 @@ const MARKET_SYMBOLS = [
   { symbol: "STI", tv: "TVC:STI", scanner: "global", group: "Index" },
   { symbol: "N225", tv: "TVC:NI225", scanner: "global", group: "Index" },
   { symbol: "HSI", tv: "TVC:HSI", scanner: "global", group: "Index" },
+  { symbol: "GOLD", tv: "TVC:GOLD", scanner: "global", group: "Gold" },
+  { symbol: "USDSGD", tv: "OANDA:USDSGD", scanner: "global", group: "FX" },
   { symbol: "SHCOMP", tv: "SSE:000001", scanner: "global", group: "China" },
   { symbol: "CSI300", tv: "SSE:000300", scanner: "global", group: "China" },
   { symbol: "SZCOMP", tv: "SZSE:399001", scanner: "global", group: "China" },

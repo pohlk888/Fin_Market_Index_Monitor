@@ -12,6 +12,8 @@ const SYMBOLS = [
   { symbol: "STI", group: "index" },
   { symbol: "N225", group: "index" },
   { symbol: "HSI", group: "index" },
+  { symbol: "GOLD", group: "gold" },
+  { symbol: "USDSGD", group: "fx" },
   { symbol: "SHCOMP", group: "china" },
   { symbol: "CSI300", group: "china" },
   { symbol: "SZCOMP", group: "china" },
@@ -25,6 +27,9 @@ const SYMBOLS = [
   { symbol: "HSI1!", group: "future" },
 ];
 const ALARM_SYMBOLS = ["SPY", "SPX", "ES1!"];
+const PRICE_DIGITS = {
+  USDSGD: 4,
+};
 const STATIC_DATA_MAX_AGE_MS = 10 * 60 * 1000;
 const STATIC_DATA_SOURCES = [
   () => `data/quotes.json?t=${Date.now()}`,
@@ -109,8 +114,12 @@ function formatTime(value) {
 
 function formatRange(quote) {
   return quote.dayLow != null && quote.dayHigh != null
-    ? `${formatNumber(quote.dayLow)} - ${formatNumber(quote.dayHigh)}`
+    ? `${formatQuoteNumber(quote, quote.dayLow)} - ${formatQuoteNumber(quote, quote.dayHigh)}`
     : "--";
+}
+
+function formatQuoteNumber(quote, value) {
+  return formatNumber(value, PRICE_DIGITS[quote?.symbol] ?? 2);
 }
 
 function movementClass(value) {
@@ -127,6 +136,8 @@ function groupLabel(group) {
   return {
     etf: "ETF",
     index: "Index",
+    gold: "Gold",
+    fx: "FX",
     china: "China",
     taiwan: "Taiwan",
     indonesia: "Indonesia",
@@ -213,10 +224,10 @@ function renderTable() {
           <td><span class="symbol">${quote.symbol}</span></td>
           <td><div class="name" title="${quote.shortName}">${quote.shortName}</div></td>
           <td><span class="badge">${groupLabel(group)}</span></td>
-          <td class="num">${formatNumber(quote.price)}</td>
+          <td class="num">${formatQuoteNumber(quote, quote.price)}</td>
           <td class="num ${moveClass}">${formatNumber(quote.change)}</td>
           <td class="num ${moveClass}">${formatNumber(quote.changePercent)}%</td>
-          <td class="num">${formatNumber(quote.allTimeHigh)}</td>
+          <td class="num">${formatQuoteNumber(quote, quote.allTimeHigh)}</td>
           <td class="num ${movementClass(quote.drawdownPercent)}">${formatNumber(quote.drawdownPercent)}%</td>
           <td><span class="criteria ${quote.alarmTriggered ? "criteria-hot" : ""}">${alarmCriteriaLabel(quote.alarmCriteria)}</span></td>
           <td class="num">${range}</td>
@@ -244,13 +255,13 @@ function renderTable() {
             <em>${groupLabel(group)}</em>
           </div>
           <div class="quote-card-price">
-            <span>${formatNumber(quote.price)}</span>
+            <span>${formatQuoteNumber(quote, quote.price)}</span>
             <b class="${moveClass}">${formatNumber(quote.change)} (${formatNumber(quote.changePercent)}%)</b>
           </div>
           <dl class="quote-card-grid">
             <div>
               <dt>All-Time High</dt>
-              <dd>${formatNumber(quote.allTimeHigh)}</dd>
+              <dd>${formatQuoteNumber(quote, quote.allTimeHigh)}</dd>
             </div>
             <div>
               <dt>Drawdown</dt>
