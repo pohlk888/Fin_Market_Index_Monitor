@@ -73,6 +73,7 @@ const trendExpandButton = document.querySelector("#trendExpandButton");
 const trendZoomOutButton = document.querySelector("#trendZoomOutButton");
 const trendZoomInButton = document.querySelector("#trendZoomInButton");
 const trendResetButton = document.querySelector("#trendResetButton");
+const trendRangeButtons = [...document.querySelectorAll(".trend-range-button")];
 const tabs = [...document.querySelectorAll(".tab")];
 const API_BASE_URL = String(window.MARKET_MONITOR_CONFIG?.apiBaseUrl || "").replace(/\/+$/, "");
 const FORCE_STATIC_DATA = new URLSearchParams(window.location.search).has("static");
@@ -90,6 +91,7 @@ let trendRangeStart = null;
 let trendRangeEnd = null;
 let trendDrag = null;
 let trendChartMetrics = null;
+let trendActiveRange = "5Y";
 
 function isGitHubPagesHost() {
   return window.location.hostname.endsWith(".github.io");
@@ -264,10 +266,56 @@ function clearTrendRange() {
   trendDrag = null;
 }
 
-function setTrendRange(startIndex, endIndex, totalPoints) {
+function setTrendRange(startIndex, endIndex, totalPoints, range = "custom") {
   trendRangeStart = Math.max(0, Math.min(startIndex, totalPoints - 1));
   trendRangeEnd = Math.max(trendRangeStart, Math.min(endIndex, totalPoints - 1));
   trendZoomLevel = 0;
+  trendActiveRange = range;
+  updateTrendRangeButtons();
+}
+
+function updateTrendRangeButtons() {
+  trendRangeButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.range === trendActiveRange);
+  });
+}
+
+function applyTrendRange(range) {
+  if (!openTrendSymbol || !historyPayload) return;
+
+  const points = trendPointsFor(openTrendSymbol);
+  if (!points.length) return;
+
+  if (range === "5Y") {
+    trendZoomLevel = 0;
+    clearTrendRange();
+    trendActiveRange = "5Y";
+    updateTrendRangeButtons();
+    rerenderOpenTrend();
+    return;
+  }
+
+  const endIndex = points.length - 1;
+  const rangeCounts = {
+    "1D": 1,
+    "1W": 5,
+    "1M": 21,
+    "3M": 63,
+    "6M": 126,
+    "1Y": 252,
+    "2Y": 504,
+  };
+  let startIndex = Math.max(0, points.length - (rangeCounts[range] || points.length));
+
+  if (range === "YTD") {
+    const latestDate = new Date(points[endIndex].t);
+    const yearStart = new Date(latestDate.getFullYear(), 0, 1).getTime();
+    const ytdIndex = points.findIndex((point) => new Date(point.t).getTime() >= yearStart);
+    startIndex = ytdIndex >= 0 ? ytdIndex : startIndex;
+  }
+
+  setTrendRange(startIndex, endIndex, points.length, range);
+  rerenderOpenTrend();
 }
 
 function movingAverageSeries(points, windowSize) {
@@ -448,6 +496,7 @@ function renderTrendChart(symbol) {
   trendLast.textContent = `Last ${formatQuoteNumber(quote, quote.price)}`;
   trendChange.textContent = `Move ${formatNumber(quote.change)} (${formatNumber(quote.changePercent)}%)`;
   trendChange.className = movementClass(quote.change);
+  updateTrendRangeButtons();
   const { startIndex, endIndex } = visibleWindowFor(points);
   const visiblePoints = points.slice(startIndex, endIndex + 1);
   trendPoints.textContent = `${visiblePoints.length} of ${points.length} days`;
@@ -604,13 +653,15 @@ function renderTrendChart(symbol) {
     <text x="9" y="${chartHeight / 2}" class="trend-axis-title" text-anchor="middle" transform="rotate(-90 9 ${chartHeight / 2})">Value</text>
   `;
   const sourceSymbol = history?.sourceSymbol ? ` (${history.sourceSymbol})` : "";
-  trendNote.textContent = `Daily OHLC prices for the past 5 years from ${historyPayload?.source || "history data"}${sourceSymbol}. Drag across the chart to zoom into any month range.`;
+  trendNote.textContent = `Daily OHLC prices from ${historyPayload?.source || "history data"}${sourceSymbol}. Select a range or drag across the chart to zoom.`;
 }
 
 async function openTrend(symbol) {
   openTrendSymbol = symbol;
   trendZoomLevel = 0;
+  trendActiveRange = "5Y";
   clearTrendRange();
+  updateTrendRangeButtons();
   trendPanel.hidden = false;
   renderTrendLoading(symbol);
   trendCloseButton.focus();
@@ -738,7 +789,7 @@ function adjustTrendRange(factor) {
     endIndex = totalPoints - 1;
   }
 
-  setTrendRange(startIndex, endIndex, totalPoints);
+  setTrendRange(startIndex, endIndex, totalPoints, "custom");
   return true;
 }
 
@@ -1065,7 +1116,12 @@ trendZoomOutButton.addEventListener("click", () => {
 trendResetButton.addEventListener("click", () => {
   trendZoomLevel = 0;
   clearTrendRange();
+  trendActiveRange = "5Y";
+  updateTrendRangeButtons();
   rerenderOpenTrend();
+});
+trendRangeButtons.forEach((button) => {
+  button.addEventListener("click", () => applyTrendRange(button.dataset.range));
 });
 trendSvg.addEventListener("pointerdown", startTrendDrag);
 trendSvg.addEventListener("pointermove", moveTrendDrag);

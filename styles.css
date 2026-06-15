@@ -618,6 +618,37 @@ tbody tr.alarm-row:hover {
   outline: none;
 }
 
+.trend-ranges {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(38px, 1fr));
+  gap: 6px;
+  margin: 0 0 12px;
+}
+
+.trend-range-button {
+  min-height: 34px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+.trend-range-button:hover,
+.trend-range-button:focus-visible {
+  border-color: #5583d4;
+  color: var(--text);
+  outline: none;
+}
+
+.trend-range-button.active {
+  background: rgba(85, 131, 212, 0.22);
+  border-color: rgba(115, 167, 255, 0.65);
+  color: var(--text);
+}
+
 .trend-legend {
   display: flex;
   flex-wrap: wrap;
@@ -982,6 +1013,10 @@ tbody tr.alarm-row:hover {
   .trend-meta {
     grid-template-columns: 1fr;
     margin: 12px 0 10px;
+  }
+
+  .trend-ranges {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .trend-svg {
