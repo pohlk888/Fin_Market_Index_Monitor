@@ -707,6 +707,40 @@ tbody tr.alarm-row:hover {
   pointer-events: none;
 }
 
+.trend-hover {
+  pointer-events: none;
+}
+
+.trend-hover-line {
+  stroke: #38bdf8;
+  stroke-width: 1.4;
+  opacity: 0.92;
+}
+
+.trend-hover-dot {
+  fill: #38bdf8;
+  stroke: #0f172a;
+  stroke-width: 2.4;
+}
+
+.trend-hover-box {
+  fill: rgba(15, 23, 42, 0.94);
+  stroke: rgba(56, 189, 248, 0.7);
+  stroke-width: 1;
+}
+
+.trend-hover-date {
+  fill: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.trend-hover-value {
+  fill: #38bdf8;
+  font-size: 15px;
+  font-weight: 950;
+}
+
 .trend-area {
   fill: rgba(115, 167, 255, 0.12);
 }

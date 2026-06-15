@@ -227,6 +227,15 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
+function formatTooltipDate(value) {
+  if (!value) return "--";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
 function pointClose(point) {
   return typeof point?.c === "number" ? point.c : point?.p;
 }
@@ -547,6 +556,9 @@ function renderTrendChart(symbol) {
     startIndex,
     endIndex,
     totalPoints: points.length,
+    visibleCount: visiblePoints.length,
+    yMin,
+    yRange,
   };
 
   const xForIndex = (index) => padding.left + (visiblePoints.length > 1 ? index * xStep : innerWidth / 2);
@@ -650,6 +662,13 @@ function renderTrendChart(symbol) {
     ${fractals}
     ${ma200Path ? `<polyline class="trend-ma-line ma200-line" points="${ma200Path}"></polyline>` : ""}
     ${ma20Path ? `<polyline class="trend-ma-line ma20-line" points="${ma20Path}"></polyline>` : ""}
+    <g id="trendHover" class="trend-hover" style="display: none;">
+      <line id="trendHoverLine" class="trend-hover-line" x1="0" x2="0" y1="${padding.top}" y2="${chartHeight - padding.bottom}"></line>
+      <circle id="trendHoverDot" class="trend-hover-dot" cx="0" cy="0" r="7"></circle>
+      <rect id="trendHoverBox" class="trend-hover-box" x="0" y="0" width="166" height="48" rx="7"></rect>
+      <text id="trendHoverDate" class="trend-hover-date" x="0" y="0" text-anchor="middle">--</text>
+      <text id="trendHoverValue" class="trend-hover-value" x="0" y="0" text-anchor="middle">--</text>
+    </g>
     <text x="9" y="${chartHeight / 2}" class="trend-axis-title" text-anchor="middle" transform="rotate(-90 9 ${chartHeight / 2})">Value</text>
   `;
   const sourceSymbol = history?.sourceSymbol ? ` (${history.sourceSymbol})` : "";
@@ -708,6 +727,70 @@ function trendIndexForX(x) {
   return Math.round(startIndex + ratio * span);
 }
 
+function updateTrendHover(event) {
+  if (!trendChartMetrics || !openTrendSymbol || trendPanel.hidden) return;
+
+  const points = trendPointsFor(openTrendSymbol);
+  const quote = quotes.find((item) => item.symbol === openTrendSymbol);
+  if (!points.length || !quote) return;
+
+  const point = trendSvgPoint(event);
+  const index = Math.max(trendChartMetrics.startIndex, Math.min(trendIndexForX(point.x), trendChartMetrics.endIndex));
+  const dataPoint = points[index];
+  const close = pointClose(dataPoint);
+  if (!dataPoint || typeof close !== "number" || !Number.isFinite(close)) return;
+
+  const hover = trendSvg.querySelector("#trendHover");
+  const line = trendSvg.querySelector("#trendHoverLine");
+  const dot = trendSvg.querySelector("#trendHoverDot");
+  const box = trendSvg.querySelector("#trendHoverBox");
+  const date = trendSvg.querySelector("#trendHoverDate");
+  const value = trendSvg.querySelector("#trendHoverValue");
+  if (!hover || !line || !dot || !box || !date || !value) return;
+
+  const {
+    chartWidth,
+    padding,
+    innerWidth,
+    innerHeight,
+    startIndex,
+    endIndex,
+    visibleCount,
+    yMin,
+    yRange,
+  } = trendChartMetrics;
+  const localIndex = index - startIndex;
+  const x =
+    visibleCount > 1
+      ? padding.left + (localIndex * innerWidth) / Math.max(endIndex - startIndex, 1)
+      : padding.left + innerWidth / 2;
+  const y = padding.top + (1 - (close - yMin) / yRange) * innerHeight;
+  const boxWidth = 166;
+  const boxHeight = 48;
+  const boxX = Math.max(padding.left + 4, Math.min(chartWidth - padding.right - boxWidth - 4, x - boxWidth / 2));
+  const boxY = padding.top + 8;
+  const textX = boxX + boxWidth / 2;
+
+  hover.style.display = "block";
+  line.setAttribute("x1", x.toFixed(2));
+  line.setAttribute("x2", x.toFixed(2));
+  dot.setAttribute("cx", x.toFixed(2));
+  dot.setAttribute("cy", y.toFixed(2));
+  box.setAttribute("x", boxX.toFixed(2));
+  box.setAttribute("y", boxY.toFixed(2));
+  date.setAttribute("x", textX.toFixed(2));
+  date.setAttribute("y", (boxY + 18).toFixed(2));
+  value.setAttribute("x", textX.toFixed(2));
+  value.setAttribute("y", (boxY + 38).toFixed(2));
+  date.textContent = formatTooltipDate(dataPoint.t);
+  value.textContent = formatQuoteNumber(quote, close);
+}
+
+function hideTrendHover() {
+  const hover = trendSvg.querySelector("#trendHover");
+  if (hover) hover.style.display = "none";
+}
+
 function updateTrendSelection(startX, currentX) {
   const selection = trendSvg.querySelector("#trendSelection");
   if (!selection || !trendChartMetrics) return;
@@ -731,11 +814,13 @@ function startTrendDrag(event) {
   const x = clampTrendX(point.x);
   trendDrag = { pointerId: event.pointerId, startX: x, currentX: x };
   trendSvg.setPointerCapture?.(event.pointerId);
+  updateTrendHover(event);
   updateTrendSelection(x, x);
   event.preventDefault();
 }
 
 function moveTrendDrag(event) {
+  updateTrendHover(event);
   if (!trendDrag || trendDrag.pointerId !== event.pointerId) return;
 
   const point = trendSvgPoint(event);
@@ -752,6 +837,7 @@ function finishTrendDrag(event) {
   const startX = trendDrag.startX;
   const dragWidth = Math.abs(endX - startX);
   trendSvg.releasePointerCapture?.(event.pointerId);
+  updateTrendHover(event);
   hideTrendSelection();
   trendDrag = null;
 
@@ -768,6 +854,7 @@ function finishTrendDrag(event) {
 function cancelTrendDrag() {
   trendDrag = null;
   hideTrendSelection();
+  hideTrendHover();
 }
 
 function adjustTrendRange(factor) {
@@ -1127,6 +1214,9 @@ trendSvg.addEventListener("pointerdown", startTrendDrag);
 trendSvg.addEventListener("pointermove", moveTrendDrag);
 trendSvg.addEventListener("pointerup", finishTrendDrag);
 trendSvg.addEventListener("pointercancel", cancelTrendDrag);
+trendSvg.addEventListener("pointerleave", () => {
+  if (!trendDrag) hideTrendHover();
+});
 trendPanel.addEventListener("click", (event) => {
   if (event.target === trendPanel) closeTrend();
 });
