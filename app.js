@@ -853,9 +853,10 @@ function setStatus(kind, message) {
 }
 
 function renderDeliveryStatus(status) {
-  emailStatus.textContent = status.email.configured
-    ? "Email ready"
-    : `Email missing: ${status.email.missing.join(", ")}`;
+  const recipients = Array.isArray(status.email.recipient)
+    ? status.email.recipient.join(", ")
+    : status.email.recipient || "No email recipients configured";
+  emailStatus.textContent = recipients;
   emailStatus.title = emailStatus.textContent;
   emailStatus.className = `delivery-pill ${status.email.configured ? "ready" : "missing"}`;
 }
