@@ -300,6 +300,24 @@ function pivotHighLowLevels(points, length = 50) {
   };
 }
 
+function fractalMarkers(points, length = 2) {
+  const markers = [];
+
+  for (let index = length; index < points.length - length; index += 1) {
+    const point = points[index];
+    const high = pointHigh(point);
+    const low = pointLow(point);
+    const neighbors = points.slice(index - length, index).concat(points.slice(index + 1, index + length + 1));
+    const isHigh = neighbors.every((neighbor) => high > pointHigh(neighbor));
+    const isLow = neighbors.every((neighbor) => low < pointLow(neighbor));
+
+    if (isHigh) markers.push({ index, type: "high", value: high });
+    if (isLow) markers.push({ index, type: "low", value: low });
+  }
+
+  return markers;
+}
+
 function niceStep(rawStep) {
   const exponent = Math.floor(Math.log10(rawStep || 1));
   const base = 10 ** exponent;
@@ -496,6 +514,21 @@ function renderTrendChart(symbol) {
   const candleWidth = Math.max(2, Math.min(9, innerWidth / Math.max(visiblePoints.length, 1) * 0.62));
   const ma20Path = movingAveragePath(ma20);
   const ma200Path = movingAveragePath(ma200);
+  const fractals = fractalMarkers(points)
+    .filter((marker) => marker.index >= startIndex && marker.index <= endIndex && marker.value >= yMin && marker.value <= yMax)
+    .map((marker) => {
+      const localIndex = marker.index - startIndex;
+      const x = xForIndex(localIndex);
+      const candle = visiblePoints[localIndex];
+      const anchorY = marker.type === "high" ? yForPrice(pointHigh(candle)) - 8 : yForPrice(pointLow(candle)) + 8;
+      const y = Math.max(padding.top + 7, Math.min(chartHeight - padding.bottom - 7, anchorY));
+      const pointsAttr =
+        marker.type === "high"
+          ? `${(x - 4).toFixed(2)},${(y - 4).toFixed(2)} ${x.toFixed(2)},${(y + 4).toFixed(2)} ${(x + 4).toFixed(2)},${(y - 4).toFixed(2)}`
+          : `${(x - 4).toFixed(2)},${(y + 4).toFixed(2)} ${x.toFixed(2)},${(y - 4).toFixed(2)} ${(x + 4).toFixed(2)},${(y + 4).toFixed(2)}`;
+      return `<polygon class="fractal-marker fractal-${marker.type}" points="${pointsAttr}"></polygon>`;
+    })
+    .join("");
   const candles = visiblePoints
     .map((point, index) => {
       const open = pointOpen(point);
@@ -556,6 +589,7 @@ function renderTrendChart(symbol) {
     <span><i class="ma20-dot"></i>20 days MA</span>
     <span><i class="ma200-dot"></i>200 days MA</span>
     <span><i class="pivot-dot"></i>Pivot Point High Low (200)</span>
+    <span><i class="fractal-dot"></i>Fractal</span>
   `;
   trendSvg.innerHTML = `
     <rect class="trend-frame" x="1" y="1" width="718" height="298" rx="8"></rect>
@@ -564,6 +598,7 @@ function renderTrendChart(symbol) {
     <rect id="trendSelection" class="trend-selection" x="0" y="${padding.top}" width="0" height="${innerHeight}" style="display: none;"></rect>
     ${pivotLines}
     ${candles}
+    ${fractals}
     ${ma200Path ? `<polyline class="trend-ma-line ma200-line" points="${ma200Path}"></polyline>` : ""}
     ${ma20Path ? `<polyline class="trend-ma-line ma20-line" points="${ma20Path}"></polyline>` : ""}
     <text x="9" y="${chartHeight / 2}" class="trend-axis-title" text-anchor="middle" transform="rotate(-90 9 ${chartHeight / 2})">Value</text>

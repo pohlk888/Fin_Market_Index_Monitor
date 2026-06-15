@@ -774,6 +774,23 @@ tbody tr.alarm-row:hover {
   stroke-dasharray: 6 5;
 }
 
+.fractal-dot {
+  background: #06b6d4;
+}
+
+.fractal-marker {
+  stroke: #ffffff;
+  stroke-width: 1.2;
+}
+
+.fractal-high {
+  fill: #e11d48;
+}
+
+.fractal-low {
+  fill: #06b6d4;
+}
+
 .pivot-high,
 .pivot-mid,
 .pivot-low {
