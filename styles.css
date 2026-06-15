@@ -675,6 +675,7 @@ tbody tr.alarm-row:hover {
 .trend-svg {
   width: 100%;
   min-height: 300px;
+  height: 100%;
   display: block;
   border-radius: 8px;
   background: #ffffff;
@@ -911,6 +912,86 @@ tbody tr.alarm-row:hover {
 
   .search input {
     width: 100%;
+  }
+}
+
+@media (max-width: 1180px) and (orientation: landscape) {
+  .trend-panel {
+    align-items: stretch;
+    padding: max(6px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
+  }
+
+  .trend-dialog,
+  .trend-panel-expanded .trend-dialog {
+    width: 100%;
+    max-height: calc(100dvh - 12px);
+    padding: 10px;
+    display: grid;
+    grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
+    overflow: hidden;
+  }
+
+  .trend-head {
+    align-items: center;
+  }
+
+  .trend-head h2 {
+    font-size: clamp(1.1rem, 3.6vw, 1.55rem);
+  }
+
+  #trendCloseButton {
+    height: 32px;
+  }
+
+  .trend-meta {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin: 8px 0;
+  }
+
+  .trend-meta span {
+    padding: 6px 8px;
+    font-size: 0.75rem;
+  }
+
+  .trend-controls {
+    gap: 6px;
+    margin: 6px 0;
+  }
+
+  .trend-controls button,
+  .trend-range-button {
+    min-height: 30px;
+    height: 30px;
+    font-size: 0.74rem;
+  }
+
+  .trend-ranges {
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    margin-bottom: 6px;
+  }
+
+  .trend-legend {
+    gap: 5px 10px;
+    margin-bottom: 6px;
+    font-size: 0.68rem;
+  }
+
+  .trend-legend i {
+    width: 16px;
+  }
+
+  .trend-svg {
+    height: auto;
+    min-height: 0;
+    align-self: stretch;
+  }
+
+  .trend-note {
+    margin-top: 6px;
+    font-size: 0.72rem;
+    line-height: 1.2;
   }
 }
 
