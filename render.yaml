@@ -7,6 +7,10 @@ services:
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        sync: false
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT

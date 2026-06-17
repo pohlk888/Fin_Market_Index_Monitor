@@ -305,17 +305,25 @@ function evaluatePriceAlarm(quote) {
 }
 
 function hasEmailConfig() {
+  return hasResendConfig() || hasSmtpConfig();
+}
+
+function hasResendConfig() {
+  return Boolean(process.env.RESEND_API_KEY);
+}
+
+function hasSmtpConfig() {
   return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 }
 
 async function sendConfiguredEmailAlarm(triggeredQuotes, now) {
   if (!hasEmailConfig()) return;
 
-    try {
-      await sendDrawdownAlarmEmail(triggeredQuotes);
-      spyAlarmState.lastEmailSentAt = now;
-      spyAlarmState.lastEmailStatus = `Sent to ${alertEmailRecipients().join(", ")}`;
-    } catch (error) {
+  try {
+    await sendDrawdownAlarmEmail(triggeredQuotes);
+    spyAlarmState.lastEmailSentAt = now;
+    spyAlarmState.lastEmailStatus = `Sent to ${alertEmailRecipients().join(", ")}`;
+  } catch (error) {
     spyAlarmState.lastEmailStatus = `Email not sent: ${errorMessage(error)}`;
     console.error(spyAlarmState.lastEmailStatus);
   }
@@ -342,7 +350,7 @@ async function sendTrialAlert() {
       result.email.status = `Email not sent: ${errorMessage(error)}`;
     }
   } else {
-    result.email.status = "Missing SMTP_HOST, SMTP_USER, and SMTP_PASS";
+    result.email.status = "Missing RESEND_API_KEY or SMTP_HOST, SMTP_USER, and SMTP_PASS";
   }
 
   return result;
@@ -353,7 +361,8 @@ function alertConfigStatus() {
     email: {
       recipient: alertEmailRecipients(),
       configured: hasEmailConfig(),
-      missing: ["SMTP_HOST", "SMTP_USER", "SMTP_PASS"].filter((key) => !process.env[key]),
+      provider: hasResendConfig() ? "Resend" : hasSmtpConfig() ? "SMTP" : "Not configured",
+      missing: emailMissingKeys(),
     },
     criteria: `${ALARM_SYMBOLS.join(", ")} drawdown <= -${SPY_DRAWDOWN_ALARM_PERCENT.toFixed(2)}%`,
     symbols: ALARM_SYMBOLS,
@@ -363,14 +372,10 @@ function alertConfigStatus() {
 
 async function sendDrawdownAlarmEmail(quotes, trial = false) {
   if (!hasEmailConfig()) {
-    throw new Error("SMTP_HOST, SMTP_USER, and SMTP_PASS are not configured");
+    throw new Error("RESEND_API_KEY or SMTP_HOST, SMTP_USER, and SMTP_PASS are not configured");
   }
 
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || 465);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM || user;
+  const from = process.env.RESEND_FROM || process.env.SMTP_FROM || process.env.SMTP_USER;
   const symbols = quotes.map((quote) => quote.symbol).join(", ") || ALARM_SYMBOLS.join(", ");
   const subject = trial
     ? "Market drawdown alarm trial run"
@@ -391,7 +396,55 @@ async function sendDrawdownAlarmEmail(quotes, trial = false) {
     `Alarm threshold: ${SPY_DRAWDOWN_ALARM_PERCENT.toFixed(2)}%`,
   ].join("\n");
 
-  await sendSmtpMail({ host, port, user, pass, from, to: alertEmailRecipients(), subject, body });
+  if (hasResendConfig()) {
+    await sendResendMail({ from, to: alertEmailRecipients(), subject, body });
+    return;
+  }
+
+  await sendSmtpMail({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT || 465),
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+    from,
+    to: alertEmailRecipients(),
+    subject,
+    body,
+  });
+}
+
+function emailMissingKeys() {
+  if (hasResendConfig()) return [];
+  const smtpMissing = ["SMTP_HOST", "SMTP_USER", "SMTP_PASS"].filter((key) => !process.env[key]);
+  return ["RESEND_API_KEY", ...smtpMissing];
+}
+
+async function sendResendMail({ from, to, subject, body }) {
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "authorization": `Bearer ${process.env.RESEND_API_KEY}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      text: body,
+    }),
+  });
+  const payloadText = await response.text();
+  let payload = null;
+  try {
+    payload = payloadText ? JSON.parse(payloadText) : null;
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    const message = payload?.message || payload?.error || payloadText || `HTTP ${response.status}`;
+    throw new Error(`Resend ${response.status}: ${message}`);
+  }
 }
 
 async function sendSmtpMail({ host, port, user, pass, from, to, subject, body }) {
