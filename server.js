@@ -1,4 +1,5 @@
 import http from "node:http";
+import net from "node:net";
 import tls from "node:tls";
 import { existsSync, readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
@@ -310,12 +311,12 @@ function hasEmailConfig() {
 async function sendConfiguredEmailAlarm(triggeredQuotes, now) {
   if (!hasEmailConfig()) return;
 
-  try {
-    await sendDrawdownAlarmEmail(triggeredQuotes);
-    spyAlarmState.lastEmailSentAt = now;
-    spyAlarmState.lastEmailStatus = `Sent to ${alertEmailRecipients().join(", ")}`;
-  } catch (error) {
-    spyAlarmState.lastEmailStatus = `Email not sent: ${error.message}`;
+    try {
+      await sendDrawdownAlarmEmail(triggeredQuotes);
+      spyAlarmState.lastEmailSentAt = now;
+      spyAlarmState.lastEmailStatus = `Sent to ${alertEmailRecipients().join(", ")}`;
+    } catch (error) {
+    spyAlarmState.lastEmailStatus = `Email not sent: ${errorMessage(error)}`;
     console.error(spyAlarmState.lastEmailStatus);
   }
 }
@@ -338,7 +339,7 @@ async function sendTrialAlert() {
       await sendDrawdownAlarmEmail(watchedQuotes, true);
       result.email.status = `Sent to ${alertEmailRecipients().join(", ")}`;
     } catch (error) {
-      result.email.status = `Email not sent: ${error.message}`;
+      result.email.status = `Email not sent: ${errorMessage(error)}`;
     }
   } else {
     result.email.status = "Missing SMTP_HOST, SMTP_USER, and SMTP_PASS";
@@ -394,14 +395,40 @@ async function sendDrawdownAlarmEmail(quotes, trial = false) {
 }
 
 async function sendSmtpMail({ host, port, user, pass, from, to, subject, body }) {
-  const recipients = Array.isArray(to) ? to : [to];
-  const socket = tls.connect({ host, port, servername: host });
-  await new Promise((resolve, reject) => {
-    socket.once("secureConnect", resolve);
-    socket.once("error", reject);
-  });
+  const attempts = [{ port, secure: port !== 587 }];
+  if (port !== 587) attempts.push({ port: 587, secure: false });
+  const errors = [];
 
-  const readResponse = createSmtpReader(socket);
+  for (const attempt of attempts) {
+    try {
+      await sendSmtpMailAttempt({
+        host,
+        port: attempt.port,
+        secure: attempt.secure,
+        user,
+        pass,
+        from,
+        to,
+        subject,
+        body,
+      });
+      return;
+    } catch (error) {
+      errors.push(`${host}:${attempt.port} ${errorMessage(error)}`);
+      if (String(errorMessage(error)).includes("535")) break;
+    }
+  }
+
+  throw new Error(errors.join(" | "));
+}
+
+async function sendSmtpMailAttempt({ host, port, secure, user, pass, from, to, subject, body }) {
+  const recipients = Array.isArray(to) ? to : [to];
+  const password = String(pass).replace(/\s+/g, "");
+  let socket = secure ? tls.connect({ host, port, servername: host }) : net.connect({ host, port });
+  await waitForSocketConnect(socket, secure ? "secureConnect" : "connect");
+
+  let readResponse = createSmtpReader(socket);
   const send = async (command, expected) => {
     if (command) socket.write(`${command}\r\n`);
     const response = await readResponse();
@@ -414,9 +441,16 @@ async function sendSmtpMail({ host, port, user, pass, from, to, subject, body })
   try {
     await send("", [220]);
     await send("EHLO localhost", [250]);
+    if (!secure) {
+      await send("STARTTLS", [220]);
+      socket = tls.connect({ socket, servername: host });
+      await waitForSocketConnect(socket, "secureConnect");
+      readResponse = createSmtpReader(socket);
+      await send("EHLO localhost", [250]);
+    }
     await send("AUTH LOGIN", [334]);
     await send(Buffer.from(user).toString("base64"), [334]);
-    await send(Buffer.from(pass).toString("base64"), [235]);
+    await send(Buffer.from(password).toString("base64"), [235]);
     await send(`MAIL FROM:<${from}>`, [250]);
     for (const recipient of recipients) {
       await send(`RCPT TO:<${recipient}>`, [250, 251]);
@@ -428,6 +462,30 @@ async function sendSmtpMail({ host, port, user, pass, from, to, subject, body })
   } finally {
     socket.end();
   }
+}
+
+function waitForSocketConnect(socket, eventName) {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error(`SMTP connection timed out waiting for ${eventName}`));
+    }, 15000);
+    const cleanup = () => {
+      clearTimeout(timeout);
+      socket.off(eventName, handleConnect);
+      socket.off("error", handleError);
+    };
+    const handleConnect = () => {
+      cleanup();
+      resolve();
+    };
+    const handleError = (error) => {
+      cleanup();
+      reject(error);
+    };
+    socket.once(eventName, handleConnect);
+    socket.once("error", handleError);
+  });
 }
 
 function createSmtpReader(socket) {
@@ -452,10 +510,37 @@ function createSmtpReader(socket) {
 
   return () =>
     new Promise((resolve, reject) => {
-      queue.push({ resolve, reject });
-      socket.once("error", reject);
+      const entry = {
+        resolve: (value) => {
+          cleanup();
+          resolve(value);
+        },
+        reject: (error) => {
+          cleanup();
+          reject(error);
+        },
+      };
+      const timeout = setTimeout(() => {
+        entry.reject(new Error("SMTP response timed out"));
+      }, 15000);
+      const handleError = (error) => entry.reject(error);
+      const handleClose = () => entry.reject(new Error("SMTP connection closed before response"));
+      const cleanup = () => {
+        clearTimeout(timeout);
+        socket.off("error", handleError);
+        socket.off("close", handleClose);
+      };
+      queue.push(entry);
+      socket.once("error", handleError);
+      socket.once("close", handleClose);
       flush();
     });
+}
+
+function errorMessage(error) {
+  if (error instanceof Error && error.message) return error.message;
+  if (error?.code) return error.code;
+  return String(error || "Unknown SMTP error");
 }
 
 function buildEmailMessage({ from, to, subject, body }) {
