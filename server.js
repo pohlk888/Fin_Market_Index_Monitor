@@ -386,9 +386,10 @@ async function sendDrawdownAlarmEmail(quotes, trial = false) {
     ? "❤️ Financial Market Drawdown Alarm Trial Run"
     : `❤️ Financial Market Drawdown Alarm: ${symbols}`;
   const body = buildDrawdownEmailBody(quotes, trial);
+  const html = buildDrawdownEmailHtml(quotes, trial);
 
   if (hasResendConfig()) {
-    await sendResendMail({ from, to: alertEmailRecipients(), subject, body });
+    await sendResendMail({ from, to: alertEmailRecipients(), subject, body, html });
     return;
   }
 
@@ -401,6 +402,7 @@ async function sendDrawdownAlarmEmail(quotes, trial = false) {
     to: alertEmailRecipients(),
     subject,
     body,
+    html,
   });
 }
 
@@ -424,6 +426,35 @@ function formatDrawdownEmailQuote(quote) {
   ].join("\n");
 }
 
+function buildDrawdownEmailHtml(quotes, trial = false) {
+  const title = trial
+    ? "❤️Financial Market Drawdown Alarm Trial Run"
+    : "❤️Financial Market Drawdown Alarm";
+  const quoteBlocks = quotes.map((quote) => formatDrawdownEmailQuoteHtml(quote)).join("");
+
+  return `
+    <div style="font-family: Arial, Helvetica, sans-serif; color: #111827; font-size: 16px; line-height: 1.55;">
+      <h2 style="margin: 0 0 28px; font-size: 22px;">${escapeHtml(title)}</h2>
+      ${quoteBlocks}
+    </div>
+  `;
+}
+
+function formatDrawdownEmailQuoteHtml(quote) {
+  const name = ALARM_EMAIL_NAMES[quote.symbol] || quote.shortName || quote.symbol;
+  const drawdownText = `Drawdown: ${formatPercent(quote.drawdownPercent)}   (Alarm threshold: > -${SPY_DRAWDOWN_ALARM_PERCENT.toFixed(2)}%)`;
+
+  return `
+    <div style="margin: 0 0 26px;">
+      <div style="font-weight: 700; margin-bottom: 8px;">🌸${escapeHtml(quote.symbol)} (${escapeHtml(name)}):</div>
+      <div>&nbsp; ➡️ Current value: ${escapeHtml(formatNumber(quote.price))}</div>
+      <div>&nbsp; ➡️ All-time high: ${escapeHtml(formatNumber(quote.allTimeHigh))}</div>
+      <div style="color: #dc2626; font-weight: 700;">&nbsp; ➡️ ${escapeHtml(drawdownText)}</div>
+      <div>&nbsp; ➡️ Quote time: ${escapeHtml(formatEmailQuoteTime(quote.marketTime || Date.now()))}</div>
+    </div>
+  `;
+}
+
 function formatEmailQuoteTime(value) {
   return new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Singapore",
@@ -442,7 +473,7 @@ function emailMissingKeys() {
   return ["RESEND_API_KEY", ...smtpMissing];
 }
 
-async function sendResendMail({ from, to, subject, body }) {
+async function sendResendMail({ from, to, subject, body, html }) {
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -454,6 +485,7 @@ async function sendResendMail({ from, to, subject, body }) {
       to: Array.isArray(to) ? to : [to],
       subject,
       text: body,
+      html,
     }),
   });
   const payloadText = await response.text();
@@ -470,7 +502,7 @@ async function sendResendMail({ from, to, subject, body }) {
   }
 }
 
-async function sendSmtpMail({ host, port, user, pass, from, to, subject, body }) {
+async function sendSmtpMail({ host, port, user, pass, from, to, subject, body, html }) {
   const attempts = [{ port, secure: port !== 587 }];
   if (port !== 587) attempts.push({ port: 587, secure: false });
   const errors = [];
@@ -487,6 +519,7 @@ async function sendSmtpMail({ host, port, user, pass, from, to, subject, body })
         to,
         subject,
         body,
+        html,
       });
       return;
     } catch (error) {
@@ -498,7 +531,7 @@ async function sendSmtpMail({ host, port, user, pass, from, to, subject, body })
   throw new Error(errors.join(" | "));
 }
 
-async function sendSmtpMailAttempt({ host, port, secure, user, pass, from, to, subject, body }) {
+async function sendSmtpMailAttempt({ host, port, secure, user, pass, from, to, subject, body, html }) {
   const recipients = Array.isArray(to) ? to : [to];
   const password = String(pass).replace(/\s+/g, "");
   let socket = secure ? tls.connect({ host, port, servername: host }) : net.connect({ host, port });
@@ -532,7 +565,7 @@ async function sendSmtpMailAttempt({ host, port, secure, user, pass, from, to, s
       await send(`RCPT TO:<${recipient}>`, [250, 251]);
     }
     await send("DATA", [354]);
-    socket.write(buildEmailMessage({ from, to: recipients.join(", "), subject, body }));
+    socket.write(buildEmailMessage({ from, to: recipients.join(", "), subject, body, html }));
     await send(".", [250]);
     await send("QUIT", [221]);
   } finally {
@@ -619,7 +652,9 @@ function errorMessage(error) {
   return String(error || "Unknown SMTP error");
 }
 
-function buildEmailMessage({ from, to, subject, body }) {
+function buildEmailMessage({ from, to, subject, body, html }) {
+  if (html) return buildMultipartEmailMessage({ from, to, subject, body, html });
+
   const headers = [
     `From: ${cleanHeader(from)}`,
     `To: ${cleanHeader(to)}`,
@@ -631,8 +666,43 @@ function buildEmailMessage({ from, to, subject, body }) {
   return `${headers}\r\n\r\n${body.replace(/\r?\n/g, "\r\n")}\r\n`;
 }
 
+function buildMultipartEmailMessage({ from, to, subject, body, html }) {
+  const boundary = `market-monitor-${Date.now().toString(36)}`;
+  const headers = [
+    `From: ${cleanHeader(from)}`,
+    `To: ${cleanHeader(to)}`,
+    `Subject: ${cleanHeader(subject)}`,
+    "MIME-Version: 1.0",
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+  ].join("\r\n");
+
+  return [
+    headers,
+    "",
+    `--${boundary}`,
+    "Content-Type: text/plain; charset=utf-8",
+    "",
+    body.replace(/\r?\n/g, "\r\n"),
+    `--${boundary}`,
+    "Content-Type: text/html; charset=utf-8",
+    "",
+    html.replace(/\r?\n/g, "\r\n"),
+    `--${boundary}--`,
+    "",
+  ].join("\r\n");
+}
+
 function cleanHeader(value) {
   return String(value).replace(/[\r\n]/g, " ").trim();
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 function formatNumber(value) {
