@@ -17,6 +17,11 @@ const SPY_DRAWDOWN_ALARM_PERCENT = Number(process.env.SPY_DRAWDOWN_ALARM_PERCENT
 const ALERT_EMAIL_TO = process.env.ALERT_EMAIL_TO || "pohlk888@gmail.com";
 const ALERT_EMAIL_COOLDOWN_MS = Number(process.env.ALERT_EMAIL_COOLDOWN_MS || 6 * 60 * 60 * 1000);
 const ALARM_SYMBOLS = ["SPY", "SPX", "ES1!"];
+const ALARM_EMAIL_NAMES = {
+  SPY: "S&P 500",
+  SPX: "S&P 500",
+  "ES1!": "E-mini S&P 500 Futures",
+};
 const STATIC_QUOTES_PATH = join(__dirname, "data", "quotes.json");
 const PRICE_ALARM_CRITERIA = {
   GOLD: { label: "< 4100", threshold: 4100, direction: "below" },
@@ -378,23 +383,9 @@ async function sendDrawdownAlarmEmail(quotes, trial = false) {
   const from = process.env.RESEND_FROM || process.env.SMTP_FROM || process.env.SMTP_USER;
   const symbols = quotes.map((quote) => quote.symbol).join(", ") || ALARM_SYMBOLS.join(", ");
   const subject = trial
-    ? "Market drawdown alarm trial run"
-    : `Market drawdown alarm: ${symbols}`;
-  const body = [
-    trial ? "Market drawdown alarm trial run." : "Market drawdown alarm triggered.",
-    "",
-    ...quotes.map((quote) =>
-      [
-        `${quote.symbol}:`,
-        `  Current value: ${formatNumber(quote.price)}`,
-        `  All-time high: ${formatNumber(quote.allTimeHigh)}`,
-        `  Drawdown: ${formatPercent(quote.drawdownPercent)}`,
-        `  Quote time: ${new Date(quote.marketTime || Date.now()).toLocaleString()}`,
-      ].join("\n"),
-    ),
-    "",
-    `Alarm threshold: ${SPY_DRAWDOWN_ALARM_PERCENT.toFixed(2)}%`,
-  ].join("\n");
+    ? "❤️ Financial Market Drawdown Alarm Trial Run"
+    : `❤️ Financial Market Drawdown Alarm: ${symbols}`;
+  const body = buildDrawdownEmailBody(quotes, trial);
 
   if (hasResendConfig()) {
     await sendResendMail({ from, to: alertEmailRecipients(), subject, body });
@@ -411,6 +402,38 @@ async function sendDrawdownAlarmEmail(quotes, trial = false) {
     subject,
     body,
   });
+}
+
+function buildDrawdownEmailBody(quotes, trial = false) {
+  const title = trial
+    ? "❤️Financial Market Drawdown Alarm Trial Run"
+    : "❤️Financial Market Drawdown Alarm";
+  const quoteBlocks = quotes.map((quote) => formatDrawdownEmailQuote(quote)).join("\n\n");
+
+  return `${title}\n\n\n${quoteBlocks}\n`;
+}
+
+function formatDrawdownEmailQuote(quote) {
+  const name = ALARM_EMAIL_NAMES[quote.symbol] || quote.shortName || quote.symbol;
+  return [
+    `🌸${quote.symbol} (${name}):`,
+    `  ➡️ Current value: ${formatNumber(quote.price)}`,
+    `  ➡️ All-time high: ${formatNumber(quote.allTimeHigh)}`,
+    `  ➡️ Drawdown: ${formatPercent(quote.drawdownPercent)}   (Alarm threshold: > -${SPY_DRAWDOWN_ALARM_PERCENT.toFixed(2)}%)`,
+    `  ➡️ Quote time: ${formatEmailQuoteTime(quote.marketTime || Date.now())}`,
+  ].join("\n");
+}
+
+function formatEmailQuoteTime(value) {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Singapore",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(new Date(value));
 }
 
 function emailMissingKeys() {
