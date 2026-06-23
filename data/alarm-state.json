@@ -1,9 +1,9 @@
 {
   "spyDrawdown": {
-    "active": false,
+    "active": true,
     "lastNotificationAttemptAt": 0,
     "lastEmailSentAt": 0,
-    "lastEmailStatus": "Not sent"
+    "lastEmailStatus": "Email not configured: set SMTP_HOST, SMTP_USER, and SMTP_PASS"
   },
-  "updatedAt": 1782235801165
+  "updatedAt": 1782252346895
 }
