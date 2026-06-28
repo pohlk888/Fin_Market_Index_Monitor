@@ -1,6 +1,6 @@
 {
   "source": "TradingView + saved fallback",
-  "fetchedAt": 1782659189916,
+  "fetchedAt": 1782676627303,
   "quotes": [
     {
       "symbol": "SPY",
@@ -21,7 +21,7 @@
       "dayLow": 716.58,
       "open": 728.945,
       "volume": 71033764,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627509,
       "alarmCriteria": "SPY, SPX, ES1! drawdown <= -3.50%",
       "alarmTriggered": true
     },
@@ -44,7 +44,7 @@
       "dayLow": 702.81,
       "open": 707.13,
       "volume": 47078847,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627509,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -67,7 +67,7 @@
       "dayLow": 516.1,
       "open": 517,
       "volume": 3823617,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627509,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -90,7 +90,7 @@
       "dayLow": 295.73,
       "open": 296.6,
       "volume": 39832398,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627509,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -113,7 +113,7 @@
       "dayLow": 29.45,
       "open": 29.45,
       "volume": 309128,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627509,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -136,7 +136,7 @@
       "dayLow": 25014.9599,
       "open": 25105.4142,
       "volume": 16437113416,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627509,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -159,7 +159,7 @@
       "dayLow": 2979.105,
       "open": 2990.0562,
       "volume": null,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627509,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -182,7 +182,7 @@
       "dayLow": 18.2,
       "open": 19.7,
       "volume": null,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627509,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -205,7 +205,7 @@
       "dayLow": 5155.95,
       "open": 5207.61,
       "volume": null,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627509,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -228,7 +228,7 @@
       "dayLow": 68639.84,
       "open": 71587.71,
       "volume": null,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627509,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -251,7 +251,7 @@
       "dayLow": 22518,
       "open": 22952.09,
       "volume": null,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627510,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -274,7 +274,7 @@
       "dayLow": 3983.21,
       "open": 4011.65,
       "volume": 0,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627510,
       "alarmCriteria": "< 4100",
       "alarmTriggered": true
     },
@@ -297,7 +297,7 @@
       "dayLow": 1.29285,
       "open": 1.29678,
       "volume": 66995,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627510,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -310,17 +310,17 @@
       "exchange": "FX_IDC",
       "marketState": "streaming",
       "currency": "",
-      "price": 3.1587,
+      "price": 3.1583,
       "allTimeHigh": 3.5743,
-      "drawdownPercent": -11.627451528970708,
-      "change": -0.016499999999999737,
-      "changePercent": -0.5196523053665828,
-      "previousClose": 3.1752,
-      "dayHigh": 3.182,
-      "dayLow": 3.1577,
-      "open": 3.1764,
+      "drawdownPercent": -11.638642531404749,
+      "change": -0.00039999999999995595,
+      "changePercent": -0.012663437490105295,
+      "previousClose": 3.1587,
+      "dayHigh": 3.1583,
+      "dayLow": 3.1583,
+      "open": 3.1583,
       "volume": 0,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627510,
       "alarmCriteria": "< 3.0500",
       "alarmTriggered": false
     },
@@ -343,7 +343,7 @@
       "dayLow": 13789.652,
       "open": 13851.566,
       "volume": 0,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627510,
       "alarmCriteria": "> 14200",
       "alarmTriggered": false
     },
@@ -356,17 +356,17 @@
       "exchange": "FX_IDC",
       "marketState": "streaming",
       "currency": "",
-      "price": 5.2582,
+      "price": 5.2529,
       "allTimeHigh": 5.6481,
-      "drawdownPercent": -6.903206387988879,
-      "change": 0.011100000000000776,
-      "changePercent": 0.21154542509197036,
-      "previousClose": 5.2471,
-      "dayHigh": 5.2614,
-      "dayLow": 5.2388,
-      "open": 5.2468,
+      "drawdownPercent": -6.997043253483472,
+      "change": -0.005300000000000082,
+      "changePercent": -0.10079494884181053,
+      "previousClose": 5.2582,
+      "dayHigh": 5.2582,
+      "dayLow": 5.2529,
+      "open": 5.2582,
       "volume": 0,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627510,
       "alarmCriteria": "< 5.1000",
       "alarmTriggered": false
     },
@@ -379,17 +379,17 @@
       "exchange": "FX_IDC",
       "marketState": "streaming",
       "currency": "",
-      "price": 24.646,
+      "price": 24.659,
       "allTimeHigh": 25.124177,
-      "drawdownPercent": -1.9032543832181996,
-      "change": 0.10800000000000054,
-      "changePercent": 0.4401336702257745,
-      "previousClose": 24.538,
-      "dayHigh": 24.666,
-      "dayLow": 24.543,
-      "open": 24.587,
+      "drawdownPercent": -1.8515113947812127,
+      "change": 0.012999999999998124,
+      "changePercent": 0.052746896048032635,
+      "previousClose": 24.646,
+      "dayHigh": 24.659,
+      "dayLow": 24.643,
+      "open": 24.643,
       "volume": 0,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627510,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -412,7 +412,7 @@
       "dayLow": 4007.8593,
       "open": 4098.6864,
       "volume": 66010867000,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627510,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -435,7 +435,7 @@
       "dayLow": 4845.1921,
       "open": 4981.8251,
       "volume": 34117924000,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627510,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -458,7 +458,7 @@
       "dayLow": 15728.8391,
       "open": 16211.4062,
       "volume": 36564448000,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627510,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -481,7 +481,7 @@
       "dayLow": 44454.22,
       "open": 46188.6,
       "volume": null,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627510,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -504,7 +504,7 @@
       "dayLow": 5830.144,
       "open": 6010.339,
       "volume": null,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627510,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -527,7 +527,7 @@
       "dayLow": 7357.25,
       "open": 7431,
       "volume": 1397463,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627510,
       "alarmCriteria": "SPY, SPX, ES1! drawdown <= -3.50%",
       "alarmTriggered": false
     },
@@ -550,7 +550,7 @@
       "dayLow": 29160.5,
       "open": 29742,
       "volume": 573779,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627510,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -573,7 +573,7 @@
       "dayLow": 52008,
       "open": 52439,
       "volume": 102010,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627510,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -596,7 +596,7 @@
       "dayLow": 2999.6,
       "open": 3034.7,
       "volume": 234576,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627510,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -619,7 +619,7 @@
       "dayLow": 68875,
       "open": 71260,
       "volume": 6056,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627510,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -642,7 +642,7 @@
       "dayLow": 22570,
       "open": 22615,
       "volume": 13652,
-      "marketTime": 1782659190106,
+      "marketTime": 1782676627510,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -724,5 +724,5 @@
   },
   "cached": false,
   "generatedBy": "github-actions",
-  "generatedAt": 1782659190108
+  "generatedAt": 1782676627511
 }
