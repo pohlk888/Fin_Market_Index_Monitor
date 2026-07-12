@@ -1,6 +1,6 @@
 {
   "source": "TradingView",
-  "fetchedAt": 1783859871628,
+  "fetchedAt": 1783865526080,
   "quotes": [
     {
       "symbol": "SPY",
@@ -21,7 +21,7 @@
       "dayLow": 748.1,
       "open": 752.05,
       "volume": 42189218,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "SPY, SPX, ES1! drawdown <= -3.50%",
       "alarmTriggered": false
     },
@@ -44,7 +44,7 @@
       "dayLow": 717,
       "open": 720.7,
       "volume": 26415492,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -67,7 +67,7 @@
       "dayLow": 521.74,
       "open": 525.64,
       "volume": 3469449,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -90,7 +90,7 @@
       "dayLow": 293.62,
       "open": 297.69,
       "volume": 15888482,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -113,7 +113,7 @@
       "dayLow": 31.47,
       "open": 31.52,
       "volume": 878744,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -136,7 +136,7 @@
       "dayLow": 7508.16,
       "open": 7547.64,
       "volume": 2353229265,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "SPY, SPX, ES1! drawdown <= -3.50%",
       "alarmTriggered": false
     },
@@ -159,7 +159,7 @@
       "dayLow": 26009.4919,
       "open": 26175.5355,
       "volume": 6221940263,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -182,7 +182,7 @@
       "dayLow": 52266.81,
       "open": 52622.92,
       "volume": 416819369,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -205,7 +205,7 @@
       "dayLow": 2963.1605,
       "open": 2996.1129,
       "volume": null,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -228,7 +228,7 @@
       "dayLow": 14.96,
       "open": 16.06,
       "volume": null,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -251,7 +251,7 @@
       "dayLow": 5412.51,
       "open": 5427.85,
       "volume": null,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -274,7 +274,7 @@
       "dayLow": 68271.91,
       "open": 68526.72,
       "volume": null,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -297,7 +297,7 @@
       "dayLow": 24064.62,
       "open": 24213.44,
       "volume": null,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -320,7 +320,7 @@
       "dayLow": 4072.661,
       "open": 4125.69,
       "volume": 0,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "< 4100",
       "alarmTriggered": false
     },
@@ -343,7 +343,7 @@
       "dayLow": 1.28963,
       "open": 1.29252,
       "volume": 55968,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -366,7 +366,7 @@
       "dayLow": 3.1488,
       "open": 3.1551,
       "volume": 0,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "< 3.0500",
       "alarmTriggered": false
     },
@@ -389,7 +389,7 @@
       "dayLow": 13977.065,
       "open": 13981.932,
       "volume": 0,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "> 14200",
       "alarmTriggered": false
     },
@@ -412,7 +412,7 @@
       "dayLow": 5.2445,
       "open": 5.2596,
       "volume": 0,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "< 5.1000",
       "alarmTriggered": false
     },
@@ -435,7 +435,7 @@
       "dayLow": 24.823,
       "open": 24.871,
       "volume": 0,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -458,7 +458,7 @@
       "dayLow": 3995.8072,
       "open": 4031.5373,
       "volume": 62745007000,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -481,7 +481,7 @@
       "dayLow": 4780.7468,
       "open": 4887.5355,
       "volume": 30413029000,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -504,7 +504,7 @@
       "dayLow": 15046.6695,
       "open": 15480.4066,
       "volume": 34481786000,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -527,7 +527,7 @@
       "dayLow": 45352.41,
       "open": 45805.62,
       "volume": null,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -550,7 +550,7 @@
       "dayLow": 5887.835,
       "open": 5936.037,
       "volume": null,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -573,7 +573,7 @@
       "dayLow": 7552.75,
       "open": 7587.25,
       "volume": 1004357,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "SPY, SPX, ES1! drawdown <= -3.50%",
       "alarmTriggered": false
     },
@@ -596,7 +596,7 @@
       "dayLow": 29675,
       "open": 29937.75,
       "volume": 419467,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -619,7 +619,7 @@
       "dayLow": 52506,
       "open": 52753,
       "volume": 64698,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -642,7 +642,7 @@
       "dayLow": 2970.8,
       "open": 3008.1,
       "volume": 121739,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -665,7 +665,7 @@
       "dayLow": 68335,
       "open": 69085,
       "volume": 5637,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     },
@@ -688,7 +688,7 @@
       "dayLow": 24154,
       "open": 24159,
       "volume": 12771,
-      "marketTime": 1783859871792,
+      "marketTime": 1783865526257,
       "alarmCriteria": "--",
       "alarmTriggered": false
     }
@@ -718,5 +718,5 @@
   },
   "cached": false,
   "generatedBy": "github-actions",
-  "generatedAt": 1783859871793
+  "generatedAt": 1783865526258
 }
