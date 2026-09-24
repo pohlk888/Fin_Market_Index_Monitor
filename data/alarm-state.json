@@ -5,5 +5,5 @@
     "lastEmailSentAt": 0,
     "lastEmailStatus": "Email not configured: set SMTP_HOST, SMTP_USER, and SMTP_PASS"
   },
-  "updatedAt": 1790277583843
+  "updatedAt": 1790289002732
 }
